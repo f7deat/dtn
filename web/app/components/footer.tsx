@@ -37,12 +37,12 @@ const Footer: React.FC = () => {
                         <div>
                             <div className="text-lg md:text-2xl 2xl:text-3xl font-bold mb-4 2xl:mb-6">Liên kết nhanh</div>
                             <ul className="text-slate-400 grid grid-cols-2">
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Trang chủ</a></li>
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Giới thiệu</a></li>
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Tin tức</a></li>
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Hoạt động</a></li>
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Liên hệ</a></li>
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Hỗ trợ</a></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/" className="hover:text-white transition-colors">Trang chủ</Link></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/about" className="hover:text-white transition-colors">Giới thiệu</Link></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/news" className="hover:text-white transition-colors">Tin tức</Link></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/activities" className="hover:text-white transition-colors">Hoạt động</Link></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/contact" className="hover:text-white transition-colors">Liên hệ</Link></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/support" className="hover:text-white transition-colors">Hỗ trợ</Link></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Chính sách bảo mật</a></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Điều khoản sử dụng</a></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">FAQs</a></li>
