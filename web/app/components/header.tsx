@@ -1,4 +1,4 @@
-import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { faExternalLink, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
 
@@ -15,6 +15,7 @@ const Header: React.FC = () => {
                     <li className="text-lg font-bold"><a href="/news">Tin tức</a></li>
                     <li className="text-lg font-bold"><a href="/activities">Hoạt động</a></li>
                     <li className="text-lg font-bold"><a href="/contact">Liên hệ</a></li>
+                    <li className="text-lg font-bold"><a href="/search"><FontAwesomeIcon icon={faSearch} className="w-5 h-5 inline" /></a></li>
                 </ul>
             </div>
             <div className="h-full flex items-center gap-4 pl-20">
