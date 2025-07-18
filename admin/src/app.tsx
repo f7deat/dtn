@@ -27,8 +27,8 @@ export async function getInitialState(): Promise<{
 }> {
   const fetchUserInfo = async () => {
     try {
-      const msg = await queryCurrentUser();
-      return msg.data;
+      const response = await queryCurrentUser();
+      return response.data;
     } catch (_error) {
       history.push(loginPath);
     }
@@ -71,9 +71,6 @@ export const layout: RunTimeLayoutConfig = ({
         <AvatarDropdown>{avatarChildren}</AvatarDropdown>
       ),
     },
-    waterMarkProps: {
-      content: initialState?.currentUser?.name,
-    },
     footerRender: () => <Footer />,
     onPageChange: () => {
       const { location } = history;
@@ -82,26 +79,6 @@ export const layout: RunTimeLayoutConfig = ({
         history.push(loginPath);
       }
     },
-    bgLayoutImgList: [
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/D2LWSqNny4sAAAAAAAAAAAAAFl94AQBr',
-        left: 85,
-        bottom: 100,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/C2TWRpJpiC0AAAAAAAAAAAAAFl94AQBr',
-        bottom: -68,
-        right: -45,
-        height: '303px',
-      },
-      {
-        src: 'https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/F6vSTbj8KpYAAAAAAAAAAAAAFl94AQBr',
-        bottom: 0,
-        left: 0,
-        width: '331px',
-      },
-    ],
     menuHeaderRender: undefined,
     ...initialState?.settings,
   };
@@ -113,6 +90,6 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: isDev ? '' : 'https://proapi.azurewebsites.net',
+  baseURL: isDev ? 'https://api.dtn.dhhp.edu.vn' : 'https://api.dtn.dhhp.edu.vn',
   ...errorConfig,
 };

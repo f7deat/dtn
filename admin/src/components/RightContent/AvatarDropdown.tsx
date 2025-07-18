@@ -1,7 +1,5 @@
 import {
-  LogoutOutlined,
-  SettingOutlined,
-  UserOutlined,
+  LogoutOutlined
 } from '@ant-design/icons';
 import { history, useModel } from '@umijs/max';
 import type { MenuProps } from 'antd';
@@ -103,27 +101,11 @@ export const AvatarDropdown: React.FC<GlobalHeaderRightProps> = ({
   }
 
   const menuItems = [
-    ...(menu
-      ? [
-          {
-            key: 'center',
-            icon: <UserOutlined />,
-            label: '个人中心',
-          },
-          {
-            key: 'settings',
-            icon: <SettingOutlined />,
-            label: '个人设置',
-          },
-          {
-            type: 'divider' as const,
-          },
-        ]
-      : []),
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: '退出登录',
+      label: 'Đăng xuất',
+      danger: true
     },
   ];
 

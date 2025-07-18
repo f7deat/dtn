@@ -45,8 +45,7 @@ export default {
   'menu.account.settings': 'Account Settings',
   'menu.account.trigger': 'Trigger Error',
   'menu.account.logout': 'Logout',
-  'menu.editor': 'Graphic Editor',
-  'menu.editor.flow': 'Flow Editor',
-  'menu.editor.mind': 'Mind Editor',
-  'menu.editor.koni': 'Koni Editor',
+  'menu.article': 'Tin tức & Sự kiện',
+  'menu.article.overview': 'Tổng quan',
+  'menu.article.center': 'Chi tiết bài viết'
 };

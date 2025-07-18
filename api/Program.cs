@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using THPCore.Interfaces;
+using THPCore.Services;
 using YouthUnion.Data;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Services;
@@ -9,7 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IArticleService, ArticleService>();
+
+builder.Services.AddTransient<IHCAService, HCAService>();
 
 builder.Services.AddCors();
 

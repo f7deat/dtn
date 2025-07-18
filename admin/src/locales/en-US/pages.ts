@@ -1,7 +1,7 @@
 export default {
   'pages.layouts.userLayout.title':
-    'Ant Design is the most influential web design specification in Xihu district',
-  'pages.login.accountLogin.tab': 'Account Login',
+    'Đoàn Thanh Niên - Trường Đại học Hải Phòng',
+  'pages.login.accountLogin.tab': 'Tài khoản',
   'pages.login.accountLogin.errorMessage':
     'Incorrect username/password(admin/ant.design)',
   'pages.login.failure': 'Login failed, please try again!',
@@ -19,14 +19,14 @@ export default {
   'pages.login.captcha.required': 'Please input verification code!',
   'pages.login.phoneLogin.getVerificationCode': 'Get Code',
   'pages.getCaptchaSecondText': 'sec(s)',
-  'pages.login.rememberMe': 'Remember me',
-  'pages.login.forgotPassword': 'Forgot Password ?',
-  'pages.login.submit': 'Login',
-  'pages.login.loginWith': 'Login with :',
-  'pages.login.registerAccount': 'Register Account',
-  'pages.welcome.link': 'Welcome',
+  'pages.login.rememberMe': 'Nhớ mật khẩu',
+  'pages.login.forgotPassword': 'Quên mật khẩu?',
+  'pages.login.submit': 'Đăng nhập',
+  'pages.login.loginWith': 'Đăng nhập với:',
+  'pages.login.registerAccount': 'Đăng ký tài khoản',
+  'pages.welcome.link': 'Chào mừng',
   'pages.welcome.alertMessage':
-    'Faster and stronger heavy-duty components have been released.',
+    'Các thành phần nặng đã được phát hành nhanh hơn và mạnh mẽ hơn.',
   'pages.404.subTitle': 'Sorry, the page you visited does not exist.',
   'pages.404.buttonText': 'Back Home',
   'pages.admin.subPage.title': 'This page can only be viewed by Admin',

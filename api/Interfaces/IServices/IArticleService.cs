@@ -1,9 +1,14 @@
 ﻿using THPCore.Models;
+using YouthUnion.Entities;
 using YouthUnion.Models;
+using YouthUnion.Models.Articles;
 
 namespace YouthUnion.Interfaces.IServices;
 
 public interface IArticleService
 {
-    Task<ListResult<object>> ListAsync(ArticleFilterOptions filterOptions);
+    Task<THPResult> CreateAsync(Article args);
+    Task<THPResult> DeleteAsync(Guid id);
+    Task<object?> GetAsync(string normalizedName);
+    Task<ListResult<ArticleListItem>> ListAsync(ArticleFilterOptions filterOptions);
 }

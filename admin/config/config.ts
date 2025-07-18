@@ -83,7 +83,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Ant Design Pro',
+  title: 'Đoàn Thanh Niên',
   layout: {
     locale: true,
     ...defaultSettings,
@@ -103,7 +103,7 @@ export default defineConfig({
    */
   locale: {
     // default zh-CN
-    default: 'zh-CN',
+    default: 'vi-VN',
     antd: true,
     // default true, when it is true, will use `navigator.language` overwrite default
     baseNavigator: true,

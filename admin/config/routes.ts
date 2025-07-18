@@ -11,14 +11,37 @@
     ],
   },
   {
-    path: '/welcome',
-    name: 'welcome',
-    icon: 'smile',
-    component: './Welcome',
+    path: '/dashboard',
+    name: 'dashboard',
+    icon: 'DashboardOutlined',
+    component: './dashboard',
+  },
+  {
+    path: '/article',
+    name: 'article',
+    icon: 'FileTextOutlined',
+    routes: [
+      {
+        path: '/article',
+        redirect: '/article/overview',
+      },
+      {
+        path: '/article/overview',
+        name: 'overview',
+        component: './article',
+        hideInMenu: true,
+      },
+      {
+        path: '/article/center/:id',
+        name: 'center',
+        component: './article/center',
+        hideInMenu: true
+      },
+    ]
   },
   {
     path: '/',
-    redirect: '/welcome',
+    redirect: '/dashboard',
   },
   {
     component: '404',
