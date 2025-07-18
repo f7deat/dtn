@@ -5,8 +5,19 @@ export async function apiArticleList(params: any) {
 }
 
 export async function apiArticleCreate(data: any) {
-    return request(`article/create`, {
+    return request(`article`, {
         method: 'POST',
+        data,
+    });
+}
+
+export async function apiArticleGet(id?: string) {
+    return request(`article/${id}`);
+}
+
+export async function apiArticleUpdate(data: any) {
+    return request(`article`, {
+        method: 'PUT',
         data,
     });
 }

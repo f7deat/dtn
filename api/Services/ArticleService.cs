@@ -14,21 +14,29 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
 {
     public async Task<THPResult> CreateAsync(Article args)
     {
-        var normalizedName = SeoHelper.ToSeoFriendly(args.Title);
-        if (await _context.Articles.AnyAsync(x => x.NormalizedName == normalizedName)) return THPResult.Failed("Bài viết đã tồn tại!");
-        await _context.Articles.AddAsync(new Article
+        try
         {
-            Title = args.Title,
-            Description = args.Description,
-            CreatedBy = _hcaService.GetUserName(),
-            CreatedDate = DateTime.Now,
-            NormalizedName = normalizedName,
-            CategoryId = args.CategoryId,
-            Content = string.Empty,
-            Thumbnail = string.Empty
-        });
-        await _context.SaveChangesAsync();
-        return THPResult.Success;
+            var normalizedName = SeoHelper.ToSeoFriendly(args.Title);
+            if (await _context.Articles.AnyAsync(x => x.NormalizedName == normalizedName)) return THPResult.Failed("Bài viết đã tồn tại!");
+            var article = new Article
+            {
+                Title = args.Title,
+                Description = args.Description,
+                CreatedBy = _hcaService.GetUserName(),
+                CreatedDate = DateTime.Now,
+                NormalizedName = normalizedName,
+                CategoryId = args.CategoryId,
+                Content = string.Empty,
+                Thumbnail = string.Empty
+            };
+            await _context.Articles.AddAsync(article);
+            await _context.SaveChangesAsync();
+            return THPResult.Ok(article.Id);
+        }
+        catch (Exception ex)
+        {
+            return THPResult.Failed(ex.ToString());
+        }
     }
 
     public async Task<THPResult> DeleteAsync(Guid id)
@@ -44,6 +52,27 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
     {
         var article = await _context.Articles.FirstOrDefaultAsync(x => x.NormalizedName == normalizedName && x.IsActive);
         if (article is null) return default;
+        return new
+        {
+            article.Id,
+            article.Title,
+            article.Thumbnail,
+            article.Description,
+            article.CreatedDate,
+            article.CreatedBy,
+            article.IsActive,
+            article.ModifiedBy,
+            article.ViewCount,
+            article.ModifiedDate,
+            article.CategoryId,
+            article.Content
+        };
+    }
+
+    public async Task<object?> GetAsync(Guid id)
+    {
+        var article = await _context.Articles.FindAsync(id);
+        if (article is null) return article;
         return new
         {
             article.Id,
@@ -96,5 +125,22 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
         }
         query = query.OrderByDescending(x => x.CreatedDate);
         return await ListResult<ArticleListItem>.Success(query, filterOptions);
+    }
+
+    public async Task<THPResult> UpdateAsync(Article args)
+    {
+        var article = await _context.Articles.FindAsync(args.Id);
+        if (article is null) return THPResult.Failed("Không tìm thấy bài viết!");
+        article.Title = args.Title;
+        article.Content = args.Content;
+        article.ModifiedBy = _hcaService.GetUserName();
+        article.ModifiedDate = DateTime.Now;
+        article.CategoryId = args.CategoryId;
+        article.Thumbnail = args.Thumbnail;
+        article.IsActive = args.IsActive;
+        article.Description = args.Description;
+        _context.Articles.Update(article);
+        await _context.SaveChangesAsync();
+        return THPResult.Success;
     }
 }

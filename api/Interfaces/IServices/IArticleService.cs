@@ -10,5 +10,7 @@ public interface IArticleService
     Task<THPResult> CreateAsync(Article args);
     Task<THPResult> DeleteAsync(Guid id);
     Task<object?> GetAsync(string normalizedName);
+    Task<object?> GetAsync(Guid id);
     Task<ListResult<ArticleListItem>> ListAsync(ArticleFilterOptions filterOptions);
+    Task<THPResult> UpdateAsync(Article args);
 }

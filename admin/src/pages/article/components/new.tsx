@@ -1,12 +1,18 @@
 import { apiArticleCreate } from "@/services/article"
 import { PlusOutlined } from "@ant-design/icons"
 import { ModalForm, ProFormText, ProFormTextArea } from "@ant-design/pro-components"
-import { Button } from "antd"
+import { Button, message } from "antd"
 
-const NewArticle: React.FC = () => {
+type Props = {
+    reload?: () => void;
+}
+
+const NewArticle: React.FC<Props> = ({ reload }) => {
 
     const handleSubmit = async (values: any) => {
         await apiArticleCreate(values);
+        message.success('Bài viết đã được tạo thành công');
+        reload?.();
         return true; // Return true to close the modal on success
     }
 
