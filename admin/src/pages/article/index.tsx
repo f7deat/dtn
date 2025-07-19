@@ -10,9 +10,10 @@ const Index: React.FC = () => {
 
     const actionRef = useRef<ActionType>(null);
 
-
     return (
-        <PageContainer extra={<NewArticle reload={actionRef.current?.reload} />}>
+        <PageContainer extra={<NewArticle reload={() => {
+            actionRef.current?.reload();
+        }} />}>
             <ProTable
                 actionRef={actionRef}
                 request={apiArticleList}

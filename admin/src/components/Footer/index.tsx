@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
       style={{
         background: 'none',
       }}
-      copyright="Made with ❤️ by Đinh Tân"
+      copyright="2025 Trường Đại học Hải Phòng"
       links={[
         {
           key: 'home',

@@ -11,4 +11,5 @@ public class ArticleListItem : AuditEntity
     public int? CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public bool IsActive { get; set; }
+    public string? Thumbnail { get; set; }
 }

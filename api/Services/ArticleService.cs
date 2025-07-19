@@ -108,7 +108,8 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
                         CategoryName = b.Name,
                         CategoryId = a.CategoryId,
                         NormalizedName = a.NormalizedName,
-                        Description = a.Description
+                        Description = a.Description,
+                        Thumbnail = a.Thumbnail
                     };
         if (!string.IsNullOrWhiteSpace(filterOptions.Title))
         {

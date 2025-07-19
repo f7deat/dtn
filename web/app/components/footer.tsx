@@ -10,8 +10,8 @@ const Footer: React.FC = () => {
         <footer className="text-white">
             <div className="bg-slate-900">
                 <div className="container mx-auto px-4 py-8 md:py-20">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
+                    <div className="md:flex gap-4">
+                        <div className="md:w-1/4 mb-4">
                             <div className="mb-4">
                                 <img src="https://upload.wikimedia.org/wikipedia/vi/0/09/Huy_Hi%E1%BB%87u_%C4%90o%C3%A0n.png" alt="Logo" className="w-28" />
                             </div>
@@ -34,7 +34,7 @@ const Footer: React.FC = () => {
 
                             </div>
                         </div>
-                        <div>
+                        <div className="flex-1 mb-4">
                             <div className="text-lg md:text-2xl 2xl:text-3xl font-bold mb-4 2xl:mb-6">Liên kết nhanh</div>
                             <ul className="text-slate-400 grid grid-cols-2">
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/" className="hover:text-white transition-colors">Trang chủ</Link></li>
@@ -51,24 +51,21 @@ const Footer: React.FC = () => {
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><a href="#" className="hover:text-white transition-colors">Tuyển dụng</a></li>
                             </ul>
                         </div>
-                        <div>
-                            <div className="text-lg md:text-2xl 2xl:text-3xl font-bold mb-4 2xl:mb-6">Bài viết mới</div>
-                        </div>
-                        <div>
+                        <div className="md:w-1/4">
                             <div className="text-lg md:text-2xl 2xl:text-3xl font-bold mb-4 2xl:mb-6">Liên hệ</div>
                             <div className="text-slate-400 mb-2">
-                                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4 inline mr-2 text-red-600" /> Email: <a href="mailto:contact@dtn.edu.vn">contact@dtn.edu.vn</a>
+                                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4 inline mr-2 text-red-600" /> Email: <a href="mailto:contact@dhhp.edu.vn">contact@dhhp.edu.vn</a>
                             </div>
                             <div className="text-slate-400 mb-2">
-                                <FontAwesomeIcon icon={faPhone} className="w-4 h-4 inline mr-2 text-red-600" /> Điện thoại: <a href="tel:+840123456789">+84 0123 456 789</a>
+                                <FontAwesomeIcon icon={faPhone} className="w-4 h-4 inline mr-2 text-red-600" /> Điện thoại: <a href="tel:+840123456789">+84 762.559.696</a>
                             </div>
                             <div className="text-slate-400 mb-2">
-                                <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4 inline mr-2 text-red-600" /> Địa chỉ: Số 1, đường Nguyễn Bình, quận Kiến An, thành phố Hải Phòng
+                                <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4 inline mr-2 text-red-600" /> Địa chỉ: Số 171 Phù Liễn, Thành phố Hải Phòng, Việt Nam
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="border-t border-slate-700 py-4 text-center">
+                <div className="border-t border-slate-700 p-4 text-center">
                     <p className="text-slate-400">
                         © Copyright {new Date().getFullYear()} <Link href="/" className="text-red-600 hover:text-red-700">Đoàn Thanh niên trường Đại học Hải Phòng</Link>. All rights reserved.
                     </p>

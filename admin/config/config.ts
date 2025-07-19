@@ -1,20 +1,20 @@
 // https://umijs.org/config/
 
-import { join } from 'node:path';
-import { defineConfig } from '@umijs/max';
-import defaultSettings from './defaultSettings';
-import proxy from './proxy';
+import { defineConfig } from "@umijs/max";
+import { join } from "node:path";
+import defaultSettings from "./defaultSettings";
+import proxy from "./proxy";
 
-import routes from './routes';
+import routes from "./routes";
 
-const { UMI_ENV = 'dev' } = process.env;
+const { UMI_ENV = "dev" } = process.env;
 
 /**
  * @name 使用公共路径
  * @description 部署时的路径，如果部署在非根目录下，需要配置这个变量
  * @doc https://umijs.org/docs/api/config#publicpath
  */
-const PUBLIC_PATH: string = '/';
+const PUBLIC_PATH: string = "/";
 
 export default defineConfig({
   /**
@@ -83,7 +83,7 @@ export default defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Đoàn Thanh Niên',
+  title: "Đoàn Thanh Niên",
   layout: {
     locale: true,
     ...defaultSettings,
@@ -94,8 +94,8 @@ export default defineConfig({
    * @doc https://umijs.org/docs/max/moment2dayjs
    */
   moment2dayjs: {
-    preset: 'antd',
-    plugins: ['duration'],
+    preset: "antd",
+    plugins: ["duration"],
   },
   /**
    * @name 国际化插件
@@ -103,7 +103,7 @@ export default defineConfig({
    */
   locale: {
     // default zh-CN
-    default: 'vi-VN',
+    default: "vi-VN",
     antd: true,
     // default true, when it is true, will use `navigator.language` overwrite default
     baseNavigator: true,
@@ -119,7 +119,7 @@ export default defineConfig({
       theme: {
         cssVar: true,
         token: {
-          fontFamily: 'AlibabaSans, sans-serif',
+          fontFamily: "AlibabaSans, sans-serif",
         },
       },
     },
@@ -142,10 +142,11 @@ export default defineConfig({
    */
   headScripts: [
     // 解决首次加载时白屏的问题
-    { src: join(PUBLIC_PATH, 'scripts/loading.js'), async: true },
+    { src: join(PUBLIC_PATH, "scripts/loading.js"), async: true },
   ],
+
   //================ pro 插件配置 =================
-  presets: ['umi-presets-pro'],
+  presets: ["umi-presets-pro"],
   /**
    * @name 是否开启 mako
    * @description 使用 mako 极速研发
@@ -156,9 +157,10 @@ export default defineConfig({
   requestRecord: {},
   exportStatic: {},
   define: {
-    'process.env.CI': process.env.CI,
+    "process.env.CI": process.env.CI,
   },
   history: {
-    type: 'hash'
-  }
+    type: "hash",
+  },
+  tailwindcss: {},
 });
