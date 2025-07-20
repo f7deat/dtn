@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using THPCore.Interfaces;
 using THPCore.Services;
+using VnkCore.Data;
 using YouthUnion.Data;
 using YouthUnion.Entities;
 using YouthUnion.Interfaces.IServices;
@@ -15,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<VnkDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("VnkConnection")));
 
 var identityConnection = builder.Configuration.GetConnectionString("IdentityConnection");
 builder.Services.AddDbContext<IdentityDbTHPContext>(options => options.UseSqlServer(identityConnection));
@@ -24,9 +26,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => options.S
     .AddEntityFrameworkStores<IdentityDbTHPContext>()
     .AddDefaultTokenProviders();
 
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IArticleService, ArticleService>();
+builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<IHCAService, HCAService>();
 
 builder.Services.AddCors(); 

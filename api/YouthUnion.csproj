@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="THPCore" Version="1.0.6" />
+    <PackageReference Include="VnkCore" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

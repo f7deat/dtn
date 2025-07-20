@@ -16,9 +16,6 @@ import { queryCurrentUser } from './services/user';
 const isDev = process.env.NODE_ENV === 'development';
 const loginPath = '/user/login';
 
-/**
- * @see https://umijs.org/docs/api/runtime-config#getinitialstate
- * */
 export async function getInitialState(): Promise<{
   settings?: Partial<LayoutSettings>;
   currentUser?: API.CurrentUser;
@@ -28,6 +25,10 @@ export async function getInitialState(): Promise<{
   const fetchUserInfo = async () => {
     try {
       const response = await queryCurrentUser();
+      if (response.data.userType === 0) {
+        localStorage.removeItem('thp_token');
+        return undefined;
+      }
       return response.data;
     } catch (_error) {
       history.push(loginPath);

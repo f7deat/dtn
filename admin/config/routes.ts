@@ -40,6 +40,12 @@
     ]
   },
   {
+    path: '/student',
+    name: 'student',
+    icon: 'UserOutlined',
+    component: './student'
+  },
+  {
     path: '/',
     redirect: '/dashboard',
   },
