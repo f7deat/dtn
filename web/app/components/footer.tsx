@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
                             <ul className="text-slate-400 grid grid-cols-2">
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/" className="hover:text-white transition-colors">Trang chủ</Link></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/about" className="hover:text-white transition-colors">Giới thiệu</Link></li>
-                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/news" className="hover:text-white transition-colors">Tin tức</Link></li>
+                                <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/article" className="hover:text-white transition-colors">Tin tức</Link></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/activities" className="hover:text-white transition-colors">Hoạt động</Link></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/contact" className="hover:text-white transition-colors">Liên hệ</Link></li>
                                 <li className="mb-2"><FontAwesomeIcon icon={faCaretRight} className="w-4 h-4 inline text-red-600 mr-1" /><Link href="/support" className="hover:text-white transition-colors">Hỗ trợ</Link></li>

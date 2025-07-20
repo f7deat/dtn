@@ -10,12 +10,12 @@ const Header: React.FC = () => {
             </div>
             <div className="flex-1 hidden md:flex items-center justify-center nav-menu h-full">
                 <ul className="flex gap-8 z-10 relative">
-                    <li className="text-lg font-bold"><a href="#">Trang chủ</a></li>
-                    <li className="text-lg font-bold"><a href="/about">Giới thiệu</a></li>
-                    <li className="text-lg font-bold"><a href="/news">Tin tức</a></li>
-                    <li className="text-lg font-bold"><a href="/activities">Hoạt động</a></li>
-                    <li className="text-lg font-bold"><a href="/contact">Liên hệ</a></li>
-                    <li className="text-lg font-bold"><a href="/search"><FontAwesomeIcon icon={faSearch} className="w-5 h-5 inline" /></a></li>
+                    <li className="text-lg font-bold hover:text-red-600"><Link href="/">Trang chủ</Link></li>
+                    <li className="text-lg font-bold hover:text-red-600"><a href="/about">Giới thiệu</a></li>
+                    <li className="text-lg font-bold hover:text-red-600"><Link href="/article">Tin tức</Link></li>
+                    <li className="text-lg font-bold hover:text-red-600"><a href="/activities">Hoạt động</a></li>
+                    <li className="text-lg font-bold hover:text-red-600"><a href="/contact">Liên hệ</a></li>
+                    <li className="text-lg font-bold hover:text-red-600"><a href="/search"><FontAwesomeIcon icon={faSearch} className="w-5 h-5 inline" /></a></li>
                 </ul>
             </div>
             <div className="h-full flex items-center gap-4 md:pl-20">
