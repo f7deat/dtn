@@ -13,3 +13,7 @@
   width: 100%;
   position: absolute;
 }
+
+.shadow {
+    box-shadow: 0 2px 20px 0 rgba(62, 65, 159, .09);
+}
