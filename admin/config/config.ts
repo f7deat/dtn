@@ -119,8 +119,14 @@ export default defineConfig({
       theme: {
         cssVar: true,
         token: {
-          fontFamily: "AlibabaSans, sans-serif",
+          fontFamily: `"Quicksand", sans-serif`,
+          fontWeight: 500
         },
+        components: {
+          Button: {
+            fontWeight: 500
+          }
+        }
       },
     },
   },

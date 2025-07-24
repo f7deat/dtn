@@ -131,7 +131,6 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (values: any) => {
     try {
-      // 登录
       const msg = await login({ ...values, type });
       localStorage.setItem('thp_token', msg.token);
       message.success('Đăng nhập thành công!');
@@ -140,12 +139,7 @@ const Login: React.FC = () => {
       window.location.href = urlParams.get('redirect') || '/';
       return;
     } catch (error) {
-      const defaultLoginFailureMessage = intl.formatMessage({
-        id: 'pages.login.failure',
-        defaultMessage: '登录失败，请重试！',
-      });
-      console.log(error);
-      message.error(defaultLoginFailureMessage);
+      message.error('Đăng nhập thất bại, vui lòng thử lại!');
     }
   };
   const { status, type: loginType } = userLoginState;
@@ -156,7 +150,6 @@ const Login: React.FC = () => {
         <title>
           {intl.formatMessage({
             id: 'menu.login',
-            defaultMessage: '登录页',
           })}
           {Settings.title && ` - ${Settings.title}`}
         </title>
@@ -174,7 +167,7 @@ const Login: React.FC = () => {
             maxWidth: '75vw',
           }}
           logo={<img alt="logo" src="/logo.svg" />}
-          title="Ant Design"
+          title="Đại học Hải Phòng"
           subTitle={intl.formatMessage({
             id: 'pages.layouts.userLayout.title',
           })}
@@ -224,17 +217,13 @@ const Login: React.FC = () => {
                   size: 'large',
                   prefix: <UserOutlined />,
                 }}
-                placeholder={intl.formatMessage({
-                  id: 'pages.login.username.placeholder',
-                  defaultMessage: '用户名: admin or user',
-                })}
+                placeholder="Nhập tài khoản"
                 rules={[
                   {
                     required: true,
                     message: (
                       <FormattedMessage
                         id="pages.login.username.required"
-                        defaultMessage="请输入用户名!"
                       />
                     ),
                   },
@@ -246,10 +235,7 @@ const Login: React.FC = () => {
                   size: 'large',
                   prefix: <LockOutlined />,
                 }}
-                placeholder={intl.formatMessage({
-                  id: 'pages.login.password.placeholder',
-                  defaultMessage: '密码: ant.design',
-                })}
+                placeholder="Nhập mật khẩu"
                 rules={[
                   {
                     required: true,
@@ -338,7 +324,6 @@ const Login: React.FC = () => {
                   },
                 ]}
                 onGetCaptcha={async (phone) => {
-
                   message.success('获取验证码成功！验证码为：1234');
                 }}
               />
@@ -352,7 +337,6 @@ const Login: React.FC = () => {
             <ProFormCheckbox noStyle name="autoLogin">
               <FormattedMessage
                 id="pages.login.rememberMe"
-                defaultMessage="自动登录"
               />
             </ProFormCheckbox>
             <a

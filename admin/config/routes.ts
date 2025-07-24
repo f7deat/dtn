@@ -40,6 +40,12 @@
     ]
   },
   {
+    name: 'category',
+    icon: 'AppstoreOutlined',
+    path: '/category',
+    component: './category'
+  },
+  {
     path: '/student',
     name: 'student',
     icon: 'UserOutlined',

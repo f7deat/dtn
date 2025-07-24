@@ -48,5 +48,6 @@ export default {
   'menu.article': 'Tin tức & Sự kiện',
   'menu.article.overview': 'Tổng quan',
   'menu.article.center': 'Chi tiết bài viết',
-  'menu.student': 'Sinh viên'
+  'menu.student': 'Sinh viên',
+  'menu.category': 'Danh mục'
 };
