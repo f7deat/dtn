@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using THPCore.Extensions;
+﻿using Microsoft.AspNetCore.Mvc;
+using THPCore.Interfaces;
 using YouthUnion.Foundation;
 using YouthUnion.Models;
 
-namespace YouthUnion.Controllers;
+namespace YouthUnion.API.Controllers;
 
-public class FileController(IWebHostEnvironment _webHostEnvironment) : BaseController
+public class FileController(IWebHostEnvironment _webHostEnvironment, IHCAService _hcaService) : BaseController
 {
     [HttpPost("upload")]
     public async Task<IActionResult> UploadAsync([FromForm] UploadArgs args)
@@ -15,7 +14,7 @@ public class FileController(IWebHostEnvironment _webHostEnvironment) : BaseContr
         {
             if (args.File is null) return BadRequest("File not found!");
 
-            var folder = User.GetUserName();
+            var folder = _hcaService.GetUserName();
             var uploadPath = Path.Combine(_webHostEnvironment.WebRootPath, "files", folder);
 
             if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);

@@ -2,8 +2,8 @@
 using THPCore.Helpers;
 using THPCore.Interfaces;
 using THPCore.Models;
-using YouthUnion.Data;
-using YouthUnion.Entities;
+using YouthUnion.Core.Entities;
+using YouthUnion.Infrastructure.Data;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Models;
 using YouthUnion.Models.Articles;

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using THPCore.Infrastructures;
+using YouthUnion.Core.Entities;
 
 namespace YouthUnion.Entities;
 

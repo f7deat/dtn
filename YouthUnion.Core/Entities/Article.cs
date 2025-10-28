@@ -1,8 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using THPCore.Infrastructures;
+using YouthUnion.Entities;
 
-namespace YouthUnion.Entities;
+namespace YouthUnion.Core.Entities;
 
 public class Article : AuditEntity
 {

@@ -17,6 +17,12 @@
     component: './dashboard',
   },
   {
+    path: '/event',
+    name: 'event',
+    icon: 'CalendarOutlined',
+    component: './event'
+  },
+  {
     path: '/article',
     name: 'article',
     icon: 'FileTextOutlined',

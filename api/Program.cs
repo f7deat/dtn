@@ -7,8 +7,12 @@ using System.Text;
 using THPCore.Interfaces;
 using THPCore.Services;
 using VnkCore.Data;
-using YouthUnion.Data;
+using YouthUnion.Core.Interfaces.IRepositories;
+using YouthUnion.Core.Interfaces.IServices;
+using YouthUnion.Core.Services.Events;
 using YouthUnion.Entities;
+using YouthUnion.Infrastructure.Data;
+using YouthUnion.Infrastructure.Repositories;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Services;
 
@@ -29,6 +33,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => options.S
 builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IEventService, EventService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<IHCAService, HCAService>();

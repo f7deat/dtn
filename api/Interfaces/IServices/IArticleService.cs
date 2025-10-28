@@ -1,5 +1,5 @@
 ﻿using THPCore.Models;
-using YouthUnion.Entities;
+using YouthUnion.Core.Entities;
 using YouthUnion.Models;
 using YouthUnion.Models.Articles;
 

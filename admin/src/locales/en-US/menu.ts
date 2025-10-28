@@ -45,9 +45,10 @@ export default {
   'menu.account.settings': 'Account Settings',
   'menu.account.trigger': 'Trigger Error',
   'menu.account.logout': 'Logout',
-  'menu.article': 'Tin tức & Sự kiện',
+  'menu.article': 'Tin tức',
   'menu.article.overview': 'Tổng quan',
   'menu.article.center': 'Chi tiết bài viết',
   'menu.student': 'Sinh viên',
-  'menu.category': 'Danh mục'
+  'menu.category': 'Danh mục',
+  'menu.event': 'Sự kiện',
 };

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using YouthUnion.Entities;
+using YouthUnion.Core.Entities;
 using YouthUnion.Foundation;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Models;

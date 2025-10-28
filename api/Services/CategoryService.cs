@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using THPCore.Models;
-using YouthUnion.Data;
 using YouthUnion.Entities;
+using YouthUnion.Infrastructure.Data;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Models.Categories;
 

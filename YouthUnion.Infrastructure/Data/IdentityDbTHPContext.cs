@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using YouthUnion.Entities;
 
-namespace YouthUnion.Data;
+namespace YouthUnion.Infrastructure.Data;
 
 public class IdentityDbTHPContext(DbContextOptions<IdentityDbTHPContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
