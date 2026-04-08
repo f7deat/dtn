@@ -14,3 +14,18 @@ declare module 'omit.js';
 declare module 'numeral';
 declare module 'mockjs';
 declare module 'react-fittext';
+
+interface DetectedBarcode {
+	rawValue?: string;
+	format: string;
+}
+
+interface BarcodeDetector {
+	detect(source: CanvasImageSource): Promise<DetectedBarcode[]>;
+}
+
+declare var BarcodeDetector: {
+	prototype: BarcodeDetector;
+	new (options?: { formats?: string[] }): BarcodeDetector;
+	getSupportedFormats?: () => Promise<string[]>;
+};

@@ -10,7 +10,7 @@ namespace YouthUnion.API.Controllers;
 public class EventController(IEventService _eventService) : BaseController
 {
     [HttpGet("list")]
-    public async Task<IActionResult> ListAsync([FromQuery] FilterOptions filterOptions) => Ok(await _eventService.ListAsync(filterOptions));
+    public async Task<IActionResult> ListAsync([FromQuery] EventFilterOptions filterOptions) => Ok(await _eventService.ListAsync(filterOptions));
 
     [HttpPost]
     public async Task<IActionResult> CreateAsync([FromBody] EventCreateArgs args) => Ok(await _eventService.CreateAsync(args));
@@ -32,4 +32,10 @@ public class EventController(IEventService _eventService) : BaseController
 
     [HttpPost("remove-user")]
     public async Task<IActionResult> RemoveUserAsync([FromBody] EventUserRemoveArgs args) => Ok(await _eventService.RemoveUserAsync(args));
+
+    [HttpPost("qr")]
+    public async Task<IActionResult> GenerateQrAsync([FromBody] EventUserQrArgs args) => Ok(await _eventService.GenerateQrAsync(args));
+
+    [HttpPost("check-in")]
+    public async Task<IActionResult> CheckInAsync([FromBody] EventCheckInArgs args) => Ok(await _eventService.CheckInAsync(args));
 }

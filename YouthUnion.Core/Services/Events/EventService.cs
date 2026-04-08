@@ -11,8 +11,10 @@ public class EventService(IEventRepository _eventRepository) : IEventService
 {
     public Task<THPResult> AddUserAsync(EventUserAddArgs args)
     {
-        throw new NotImplementedException();
+        return _eventRepository.AddUserAsync(args);
     }
+
+    public Task<THPResult<object>> CheckInAsync(EventCheckInArgs args) => _eventRepository.CheckInAsync(args);
 
     public async Task<THPResult> CreateAsync(EventCreateArgs args)
     {
@@ -22,7 +24,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             Description = args.Description,
             Content = args.Content,
             EndDate = args.EndDate,
-            StartDate = args.StartDate
+            StartDate = args.StartDate,
+            Thumbnail = args.Thumbnail
         });
         return THPResult.Success;
     }
@@ -46,13 +49,16 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             data.Description,
             data.Content,
             data.StartDate,
-            data.EndDate
+            data.EndDate,
+            data.Thumbnail
         });
     }
 
+    public Task<THPResult<object>> GenerateQrAsync(EventUserQrArgs args) => _eventRepository.GenerateQrAsync(args);
+
     public Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions) => _eventRepository.GetUsersAsync(filterOptions);
 
-    public Task<ListResult<object>> ListAsync(FilterOptions filterOptions) => _eventRepository.ListAsync(filterOptions);
+    public Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions) => _eventRepository.ListAsync(filterOptions);
 
     public Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args) => _eventRepository.RemoveUserAsync(args);
 
@@ -65,6 +71,7 @@ public class EventService(IEventRepository _eventRepository) : IEventService
         data.Content = args.Content;
         data.StartDate = args.StartDate;
         data.EndDate = args.EndDate;
+        data.Thumbnail = args.Thumbnail;
         await _eventRepository.UpdateAsync(data);
         return THPResult.Success;
     }
