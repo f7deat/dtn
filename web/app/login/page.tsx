@@ -1,10 +1,23 @@
-/* eslint-disable @next/next/no-img-element */
+"use client";
+
 import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { redirect } from "next/navigation";
 import LoginForm from "./components/form";
 import Breadcrumb from "../components/breadcrumb";
+import { getCurrentUser } from "../services/auth";
+import { useEffect } from "react";
 
 const Page: React.FC = () => {
+
+    useEffect(() => {
+        getCurrentUser().then(user => {
+            if (user) {
+                redirect("/profile");
+            }
+        });
+    }, []);
+
     return (
         <main>
             <Breadcrumb title="Đăng nhập" items={[

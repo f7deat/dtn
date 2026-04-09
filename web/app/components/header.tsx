@@ -1,8 +1,26 @@
+"use client";
+
+import { getCurrentUser } from "../services/auth";
 import { faExternalLink, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Link from "next/link";
+import LogoutButton from "./logout-button";
+import { useEffect } from "react";
+import { useState } from "react";
 
 const Header: React.FC = () => {
+
+    const [currentUser, setCurrentUser] = useState<API.CurrentUser | null>(null);
+
+    useEffect(() => {
+        getCurrentUser().then(user => {
+            setCurrentUser(user);
+            console.log("Current user in header:", user);
+        });
+    }, []);
+
+    const displayName = currentUser?.fullName ?? [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(" ") ?? currentUser?.userName;
+
     return (
         <header className="bg-white flex items-center justify-between md:h-22 h-16 shadow">
             <div className="uppercase font-bold md:pl-10 p-4 md:pr-20">
@@ -21,7 +39,16 @@ const Header: React.FC = () => {
                 </ul>
             </div>
             <div className="h-full flex items-center gap-4 md:pl-20 pl-2">
-                <Link href="/login" className="bg-red-600 hidden md:block text-white px-4 md:px-6 py-3 rounded hover:bg-red-700 transition-colors font-bold uppercase">Đăng nhập<FontAwesomeIcon icon={faExternalLink} className="ml-2 w-4 h-4 inline" /></Link>
+                {currentUser ? (
+                    <div className="hidden md:flex items-center gap-3">
+                        <Link href="/profile" className="bg-red-600 text-white px-4 md:px-6 py-3 rounded hover:bg-red-700 transition-colors font-bold uppercase">
+                            {displayName ? `Hồ sơ: ${displayName}` : "Hồ sơ cá nhân"}
+                        </Link>
+                        <LogoutButton />
+                    </div>
+                ) : (
+                    <Link href="/login" className="bg-red-600 hidden md:block text-white px-4 md:px-6 py-3 rounded hover:bg-red-700 transition-colors font-bold uppercase">Đăng nhập<FontAwesomeIcon icon={faExternalLink} className="ml-2 w-4 h-4 inline" /></Link>
+                )}
                 <button type="button" className="bg-black text-white h-full w-16 md:w-22 flex items-center justify-center flex-col gap-3">
                     <span className="border-b border-white w-8 md:w-10"></span>
                     <span className="border-b border-white w-8 md:w-10"></span>

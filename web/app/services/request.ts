@@ -1,17 +1,31 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
+import { AUTH_COOKIE_NAME } from "./auth";
 
-const request = axios.create();
+export const API_BASE_URL = "https://api.dtn.dhhp.edu.vn";
+export const IDENTITY_BASE_URL = "https://identity.dhhp.edu.vn";
 
-request.interceptors.request.use(
-  (config) => {
-    // You can modify the request config here if needed
-    config.baseURL = 'https://api.dtn.dhhp.edu.vn';
-    return config;
-  },
-  (error) => {
-    // Handle request error
-    return Promise.reject(error);
-  }
-);
+export function createRequest(baseURL: string = API_BASE_URL) {
+  const instance = axios.create({
+    baseURL,
+  });
+
+  instance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+      if (typeof window === "undefined") {
+        return config;
+      }
+      const token = localStorage.getItem(AUTH_COOKIE_NAME);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error: unknown) => Promise.reject(error)
+  );
+
+  return instance;
+}
+
+const request = createRequest();
 
 export default request;

@@ -56,6 +56,10 @@ public class EventService(IEventRepository _eventRepository) : IEventService
 
     public Task<THPResult<object>> GenerateQrAsync(EventUserQrArgs args) => _eventRepository.GenerateQrAsync(args);
 
+    public Task<ListResult<object>> GetMyEventsAsync(FilterOptions filterOptions) => _eventRepository.GetMyEventsAsync(filterOptions);
+
+    public Task<THPResult<object>> GetMyQrAsync(Guid eventId) => _eventRepository.GetMyQrAsync(eventId);
+
     public Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions) => _eventRepository.GetUsersAsync(filterOptions);
 
     public Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions) => _eventRepository.ListAsync(filterOptions);

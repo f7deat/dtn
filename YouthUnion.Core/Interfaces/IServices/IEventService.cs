@@ -12,6 +12,8 @@ public interface IEventService
     Task<THPResult> DeleteAsync(Guid id);
     Task<THPResult<object>> DetailAsync(Guid id);
     Task<THPResult<object>> GenerateQrAsync(EventUserQrArgs args);
+    Task<ListResult<object>> GetMyEventsAsync(FilterOptions filterOptions);
+    Task<THPResult<object>> GetMyQrAsync(Guid eventId);
     Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions);
     Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions);
     Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args);

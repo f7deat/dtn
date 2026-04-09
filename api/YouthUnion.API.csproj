@@ -21,6 +21,7 @@
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="THPCore" Version="1.0.9" />
+    <PackageReference Include="THPIdentity" Version="1.0.4" />
     <PackageReference Include="VnkCore" Version="1.0.3" />
   </ItemGroup>
 

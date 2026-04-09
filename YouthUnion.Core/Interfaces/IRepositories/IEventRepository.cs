@@ -11,6 +11,8 @@ public interface IEventRepository : IAsyncRepository<Event>
     Task<THPResult> AddUserAsync(EventUserAddArgs args);
     Task<THPResult<object>> CheckInAsync(EventCheckInArgs args);
     Task<THPResult<object>> GenerateQrAsync(EventUserQrArgs args);
+    Task<ListResult<object>> GetMyEventsAsync(FilterOptions filterOptions);
+    Task<THPResult<object>> GetMyQrAsync(Guid eventId);
     Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions);
     Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions);
     Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args);

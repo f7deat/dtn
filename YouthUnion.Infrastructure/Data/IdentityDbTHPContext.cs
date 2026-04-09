@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using YouthUnion.Entities;
+using THPIdentity.Entities;
 
 namespace YouthUnion.Infrastructure.Data;
 

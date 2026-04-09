@@ -27,6 +27,9 @@ public class EventController(IEventService _eventService) : BaseController
     [HttpGet("users")]
     public async Task<IActionResult> GetUsersAsync([FromQuery] EUFilterOptions filterOptions) => Ok(await _eventService.GetUsersAsync(filterOptions));
 
+    [HttpGet("my-events")]
+    public async Task<IActionResult> GetMyEventsAsync([FromQuery] FilterOptions filterOptions) => Ok(await _eventService.GetMyEventsAsync(filterOptions));
+
     [HttpPost("add-user")]
     public async Task<IActionResult> AddUserAsync([FromBody] EventUserAddArgs args) => Ok(await _eventService.AddUserAsync(args));
 
@@ -38,4 +41,7 @@ public class EventController(IEventService _eventService) : BaseController
 
     [HttpPost("check-in")]
     public async Task<IActionResult> CheckInAsync([FromBody] EventCheckInArgs args) => Ok(await _eventService.CheckInAsync(args));
+
+    [HttpGet("my-qr/{eventId}")]
+    public async Task<IActionResult> GetMyQrAsync([FromRoute] Guid eventId) => Ok(await _eventService.GetMyQrAsync(eventId));
 }

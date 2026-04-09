@@ -19,12 +19,14 @@ public class EventRepository(
     ApplicationDbContext context,
     VnkDbContext vnkContext,
     IConfiguration configuration,
+    IdentityDbTHPContext userContext,
     IHttpContextAccessor httpContextAccessor) : EfRepository<Event>(context), IEventRepository
 {
     private readonly ApplicationDbContext _dbContext = context;
     private readonly VnkDbContext _vnkContext = vnkContext;
     private readonly IConfiguration _configuration = configuration;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly IdentityDbTHPContext _userContext = userContext;
 
     public async Task<THPResult> AddUserAsync(EventUserAddArgs args)
     {
@@ -167,53 +169,133 @@ public class EventRepository(
             return await ListResult<object>.Success(Enumerable.Empty<object>().AsQueryable(), filterOptions);
         }
 
-        var query = from userEvent in _context.UserEvents.AsNoTracking()
-                    join user in _vnkContext.Users on userEvent.UserId equals user.Id.ToString()
-                    join detail in _vnkContext.UserDetails on user.Id equals detail.UserId into userDetails
-                    from detail in userDetails.DefaultIfEmpty()
-                    join department in _vnkContext.Departments on user.DepartmentId equals department.Id into departments
-                    from department in departments.DefaultIfEmpty()
-                    where userEvent.EventId == filterOptions.EventId.Value
+        try
+        {
+            var query = from userEvent in _context.UserEvents.AsNoTracking()
+                        where userEvent.EventId == filterOptions.EventId.Value
+                        select new
+                        {
+                            Id = userEvent.UserId,
+                            UserId = userEvent.UserId,
+                            //user.UserName,
+                            //FullName = user.FirstName + " " + user.LastName,
+                            //user.ClassCode,
+                            //user.ClassName,
+                            //DepartmentName = department != null ? department.Name : null,
+                            userEvent.CheckedInAt,
+                            userEvent.CheckedInBy,
+                            IsCheckedIn = userEvent.CheckedInAt.HasValue
+                        };
+
+            if (!string.IsNullOrWhiteSpace(filterOptions.UserName))
+            {
+                var user = await _userContext.Users.FirstOrDefaultAsync(x => x.UserName == filterOptions.UserName);
+                if (user is null) return new ListResult<object>([], 0, filterOptions);
+                query = query.Where(x => x.UserId == user.Id);
+            }
+
+            if (filterOptions.IsCheckedIn.HasValue)
+            {
+                query = query.Where(x => x.IsCheckedIn == filterOptions.IsCheckedIn.Value);
+            }
+
+            query = query.OrderByDescending(x => x.CheckedInAt).ThenBy(x => x.CheckedInAt);
+            var data = await query.ToListAsync();
+            var users = await _vnkContext.Users.Where(x => x.UserType == THPIdentity.Entities.UserType.Student)
+                .Select(x => new
+                {
+                    Id = x.Id,
+                    FullName = $"{x.LastName} {x.FirstName}",
+                    x.ClassCode,
+                    x.ClassName,
+                    x.UserName
+                })
+                .ToListAsync();
+
+            return new ListResult<object>(data.Select(x =>
+            {
+                var user = users.FirstOrDefault(u => u.Id == x.UserId);
+                return new
+                {
+                    Id = x.Id,
+                };
+            }), await query.CountAsync(), filterOptions);
+        }
+        catch (Exception ex)
+        {
+            return ListResult<object>.Failed(ex.ToString());
+        }
+    }
+
+    public async Task<ListResult<object>> GetMyEventsAsync(FilterOptions filterOptions)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return await ListResult<object>.Success(Enumerable.Empty<object>().AsQueryable(), filterOptions);
+        }
+
+        var query = from userEvent in _dbContext.UserEvents.AsNoTracking()
+                    join eventItem in _dbContext.Events.AsNoTracking() on userEvent.EventId equals eventItem.Id
+                    where userEvent.UserId == currentUserId
+                    orderby eventItem.StartDate descending, eventItem.Title
                     select new
                     {
-                        Id = userEvent.UserId,
-                        UserId = userEvent.UserId,
-                        user.UserName,
-                        FullName = user.FirstName + " " + user.LastName,
-                        user.ClassCode,
-                        user.ClassName,
-                        DepartmentName = department != null ? department.Name : null,
+                        eventItem.Id,
+                        eventItem.Title,
+                        eventItem.Description,
+                        eventItem.StartDate,
+                        eventItem.EndDate,
+                        eventItem.Thumbnail,
                         userEvent.CheckedInAt,
                         userEvent.CheckedInBy,
                         IsCheckedIn = userEvent.CheckedInAt.HasValue
                     };
 
-        if (!string.IsNullOrWhiteSpace(filterOptions.UserName))
-        {
-            var keyword = filterOptions.UserName.Trim().ToLower();
-            query = query.Where(x => x.UserName.ToLower().Contains(keyword));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filterOptions.FullName))
-        {
-            var keyword = filterOptions.FullName.Trim().ToLower();
-            query = query.Where(x => x.FullName.ToLower().Contains(keyword));
-        }
-
-        if (!string.IsNullOrWhiteSpace(filterOptions.ClassCode))
-        {
-            var keyword = filterOptions.ClassCode.Trim().ToLower();
-            query = query.Where(x => x.ClassCode != null && x.ClassCode.ToLower().Contains(keyword));
-        }
-
-        if (filterOptions.IsCheckedIn.HasValue)
-        {
-            query = query.Where(x => x.IsCheckedIn == filterOptions.IsCheckedIn.Value);
-        }
-
-        query = query.OrderByDescending(x => x.CheckedInAt).ThenBy(x => x.FullName);
-
         return await ListResult<object>.Success(query.Select(x => (object)x), filterOptions);
+    }
+
+    public async Task<THPResult<object>> GetMyQrAsync(Guid eventId)
+    {
+        var currentUserId = GetCurrentUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return THPResult<object>.Failed("Không xác định được người dùng hiện tại!");
+        }
+
+        var userEvent = await _dbContext.UserEvents.AsNoTracking().AnyAsync(x => x.EventId == eventId && x.UserId == currentUserId);
+        if (!userEvent)
+        {
+            return THPResult<object>.Failed("Bạn không có trong danh sách tham gia sự kiện này!");
+        }
+
+        if (!TryParseUserId(currentUserId, out var userIdValue))
+        {
+            return THPResult<object>.Failed("Mã người dùng không hợp lệ!");
+        }
+
+        var attendee = await (from user in _vnkContext.Users
+                              where user.Id == userIdValue
+                              select new
+                              {
+                                  user.Id,
+                                  user.UserName,
+                                  FullName = user.FirstName + " " + user.LastName
+                              }).FirstOrDefaultAsync();
+
+        if (attendee is null)
+        {
+            return THPResult<object>.Failed("Không tìm thấy thông tin sinh viên!");
+        }
+
+        return THPResult<object>.Ok(new
+        {
+            EventId = eventId,
+            UserId = currentUserId,
+            attendee.UserName,
+            attendee.FullName,
+            QrCode = BuildQrCode(eventId, currentUserId)
+        });
     }
 
     public async Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions)
@@ -318,6 +400,15 @@ public class EventRepository(
             ?? user?.FindFirstValue("preferred_username")
             ?? user?.FindFirstValue("unique_name")
             ?? "system";
+    }
+
+    private string? GetCurrentUserId()
+    {
+        var user = _httpContextAccessor.HttpContext?.User;
+        return user?.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? user?.FindFirstValue("nameid")
+            ?? user?.FindFirstValue("sub")
+            ?? user?.FindFirstValue("id");
     }
 
     private static string Base64UrlEncode(byte[] value)
