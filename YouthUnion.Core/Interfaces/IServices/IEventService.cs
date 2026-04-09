@@ -1,6 +1,7 @@
 ﻿using THPCore.Models;
 using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
+using YouthUnion.Core.Services.Events.Models;
 
 namespace YouthUnion.Core.Interfaces.IServices;
 
@@ -16,6 +17,7 @@ public interface IEventService
     Task<THPResult<object>> GetMyQrAsync(Guid eventId);
     Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions);
     Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions);
+    Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId);
     Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args);
     Task<THPResult> UpdateAsync(EventUpdateArgs args);
 }

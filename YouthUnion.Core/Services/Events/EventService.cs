@@ -4,6 +4,7 @@ using YouthUnion.Core.Interfaces.IRepositories;
 using YouthUnion.Core.Interfaces.IServices;
 using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
+using YouthUnion.Core.Services.Events.Models;
 
 namespace YouthUnion.Core.Services.Events;
 
@@ -63,6 +64,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
     public Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions) => _eventRepository.GetUsersAsync(filterOptions);
 
     public Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions) => _eventRepository.ListAsync(filterOptions);
+
+    public Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId) => _eventRepository.GetCheckInExportAsync(eventId);
 
     public Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args) => _eventRepository.RemoveUserAsync(args);
 

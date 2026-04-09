@@ -22,7 +22,7 @@ export async function apiEventUserList(params: any) {
     return request("event/users", { params });
 }
 
-export async function apiEventAddUser(data: { eventId: string; userId: string; }) {
+export async function apiEventAddUser(data: { eventId: string; userName: string; }) {
     return request("event/add-user", {
         method: "POST",
         data
@@ -47,5 +47,12 @@ export async function apiEventCheckIn(data: { eventId?: string; qrCode: string; 
     return request("event/check-in", {
         method: "POST",
         data
+    });
+}
+
+export async function apiEventExport(eventId: string) {
+    return request(`event/check-in/export/${eventId}`, {
+        method: "GET",
+        responseType: "blob"
     });
 }

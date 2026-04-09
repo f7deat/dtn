@@ -4,13 +4,13 @@ import { apiLogin } from "@/app/services/auth";
 import { faUser } from "@fortawesome/free-regular-svg-icons";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Form, Input, message, notification } from "antd"
+import { Form, Input, notification } from "antd"
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 const LoginForm: React.FC = () => {
 
-  const [api, contextHolder] = notification.useNotification();
+    const [api, contextHolder] = notification.useNotification();
     const [submitting, setSubmitting] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -39,20 +39,20 @@ const LoginForm: React.FC = () => {
 
     return (
         <>
-        {contextHolder}
-        <Form layout="vertical" className="max-w-md mx-auto" onFinish={onFinish}>
-            <Form.Item label="Mã sinh viên" name="username" rules={[{ required: true, message: 'Vui lòng nhập mã sinh viên!' }]}>
-                <Input size="large" placeholder="Mã sinh viên" prefix={<FontAwesomeIcon icon={faUser} className="w-4 h-4 mr-1 text-slate-500" />} variant="filled" />
-            </Form.Item>
-            <Form.Item label="Mật khẩu" name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}>
-                <Input.Password size="large" placeholder="Mật khẩu" prefix={<FontAwesomeIcon icon={faLock} className="text-slate-500 w-4 h-4 mr-1" />} variant="filled" />
-            </Form.Item>
-            <Form.Item>
-                <button type="submit" disabled={submitting} className="bg-red-600 w-full cursor-pointer text-white px-6 py-3 rounded hover:bg-red-700 transition-colors font-bold uppercase disabled:opacity-60 disabled:cursor-not-allowed">
-                    {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
-                </button>
-            </Form.Item>
-        </Form>
+            {contextHolder}
+            <Form layout="vertical" className="max-w-md mx-auto" onFinish={onFinish}>
+                <Form.Item label="Mã sinh viên" name="username" rules={[{ required: true, message: 'Vui lòng nhập mã sinh viên!' }]}>
+                    <Input size="large" placeholder="Mã sinh viên" prefix={<FontAwesomeIcon icon={faUser} className="w-4 h-4 mr-1 text-slate-500" />} variant="filled" />
+                </Form.Item>
+                <Form.Item label="Mật khẩu" name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}>
+                    <Input.Password size="large" placeholder="Mật khẩu" prefix={<FontAwesomeIcon icon={faLock} className="text-slate-500 w-4 h-4 mr-1" />} variant="filled" />
+                </Form.Item>
+                <Form.Item>
+                    <button type="submit" disabled={submitting} className="bg-red-600 w-full cursor-pointer text-white px-6 py-3 rounded hover:bg-red-700 transition-colors font-bold uppercase disabled:opacity-60 disabled:cursor-not-allowed">
+                        {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
+                    </button>
+                </Form.Item>
+            </Form>
         </>
     )
 }

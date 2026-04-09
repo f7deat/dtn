@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { faStar } from "@fortawesome/free-regular-svg-icons";
@@ -6,7 +7,7 @@ import { redirect } from "next/navigation";
 import LoginForm from "./components/form";
 import Breadcrumb from "../components/breadcrumb";
 import { getCurrentUser } from "../services/auth";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 const Page: React.FC = () => {
 
@@ -35,7 +36,9 @@ const Page: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <LoginForm />
+                        <Suspense fallback={<div className="text-center py-10">Đang tải...</div>}>
+                            <LoginForm />
+                        </Suspense>
                         <div className="text-right">Quên mật khẩu?</div>
                         <div className="text-right mt-2">
                             <span className="text-sm text-slate-500">Bạn là người quản trị? </span>

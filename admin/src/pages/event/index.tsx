@@ -2,6 +2,7 @@ import {
     apiEventAddUser,
     apiEventCheckIn,
     apiEventCreate,
+    apiEventExport,
     apiEventGenerateQr,
     apiEventList,
     apiEventRemoveUser,
@@ -31,6 +32,7 @@ import {
 import { Button, Alert, Descriptions, Input, message, Modal, Popconfirm, QRCode, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 
 interface EventItem {
     id: string;
@@ -73,10 +75,8 @@ const Index: React.FC = () => {
     const eventActionRef = useRef<ActionType>(null);
     const userActionRef = useRef<ActionType>(null);
     const eventFormRef = useRef<ProFormInstance>(null);
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const scanFrameRef = useRef<number | null>(null);
-    const scanningRef = useRef(false);
+    const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+    const scannerInitializedRef = useRef(false);
     const checkInRef = useRef(false);
     const lastScanRef = useRef<{ value: string; at: number; }>({ value: "", at: 0 });
 
@@ -122,15 +122,43 @@ const Index: React.FC = () => {
     }, [scannerOpen, selectedEvent]);
 
     const stopScanner = () => {
-        scanningRef.current = false;
-        if (scanFrameRef.current !== null) {
-            window.cancelAnimationFrame(scanFrameRef.current);
-            scanFrameRef.current = null;
-        }
-        streamRef.current?.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-        if (videoRef.current) {
-            videoRef.current.srcObject = null;
+        if (html5QrCodeRef.current && scannerInitializedRef.current) {
+            const scanner = html5QrCodeRef.current;
+            try {
+                // Check if scanner is actually running before stopping
+                const state = scanner.getState();
+                if (state === 2) { // 2 = SCANNING state
+                    scanner.stop().then(() => {
+                        try {
+                            scanner.clear();
+                        } catch (e) {
+                            // Ignore clear errors
+                        }
+                    }).catch(() => {
+                        // Ignore errors when stopping
+                    }).finally(() => {
+                        html5QrCodeRef.current = null;
+                        scannerInitializedRef.current = false;
+                    });
+                } else {
+                    // If not scanning, just clear and reset
+                    try {
+                        scanner.clear();
+                    } catch (e) {
+                        // Ignore clear errors
+                    }
+                    html5QrCodeRef.current = null;
+                    scannerInitializedRef.current = false;
+                }
+            } catch (error) {
+                // Handle any errors during state check
+                html5QrCodeRef.current = null;
+                scannerInitializedRef.current = false;
+            }
+        } else {
+            // Reset refs even if scanner wasn't properly initialized
+            html5QrCodeRef.current = null;
+            scannerInitializedRef.current = false;
         }
     };
 
@@ -164,56 +192,28 @@ const Index: React.FC = () => {
             return;
         }
 
-        if (typeof BarcodeDetector === "undefined") {
-            setScannerError("Trình duyệt hiện tại chưa hỗ trợ quét QR bằng camera. Bạn vẫn có thể nhập mã thủ công ở bên dưới.");
-            return;
-        }
-
-        if (!navigator.mediaDevices?.getUserMedia) {
-            setScannerError("Thiết bị không hỗ trợ truy cập camera.");
-            return;
-        }
-
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: {
-                        ideal: "environment",
-                    },
+            const html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCodeRef.current = html5QrCode;
+
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
                 },
-                audio: false,
-            });
-            streamRef.current = stream;
-            if (!videoRef.current) {
-                return;
-            }
-
-            videoRef.current.srcObject = stream;
-            await videoRef.current.play();
-            const detector = new BarcodeDetector({ formats: ["qr_code"] });
-            scanningRef.current = true;
-
-            const scan = async () => {
-                if (!scanningRef.current || !videoRef.current) {
-                    return;
+                (decodedText) => {
+                    void handleCheckIn(decodedText);
+                },
+                () => {
+                    // Ignore scan failures
                 }
-
-                if (videoRef.current.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA && !checkInRef.current) {
-                    const codes = await detector.detect(videoRef.current).catch(() => []);
-                    const code = codes.find((item) => item.rawValue);
-                    if (code?.rawValue) {
-                        void handleCheckIn(code.rawValue);
-                    }
-                }
-
-                scanFrameRef.current = window.requestAnimationFrame(() => {
-                    void scan();
-                });
-            };
-
-            await scan();
-        } catch {
+            );
+            scannerInitializedRef.current = true;
+        } catch (error) {
             setScannerError("Không thể mở camera. Hãy kiểm tra quyền truy cập hoặc nhập mã QR thủ công.");
+            html5QrCodeRef.current = null;
+            scannerInitializedRef.current = false;
         }
     };
 
@@ -255,7 +255,7 @@ const Index: React.FC = () => {
         for (const student of selectedStudents) {
             await apiEventAddUser({
                 eventId: selectedEvent.id,
-                userId: String(student.id),
+                userName: student.userName,
             });
         }
 
@@ -310,7 +310,9 @@ const Index: React.FC = () => {
                 </Button>,
             ]}
         >
-            <ProCard title="Danh sách sự kiện" extra={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}>
+            <ProCard 
+            className="mb-4"
+            title="Danh sách sự kiện" extra={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}>
                 <ProTable<EventItem>
                     actionRef={eventActionRef}
                     rowKey="id"
@@ -368,55 +370,69 @@ const Index: React.FC = () => {
                                 <Button key="edit" size="small" onClick={() => openEditEventModal(record)}>
                                     Sửa
                                 </Button>,
+                                <Button key={"export"} size="small" onClick={async () => {
+                                    if (!record.id) return;
+                                    const blob = await apiEventExport(record.id);
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = `check-in-${record.title}.xlsx`;
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                }}>
+                                    Xuất Excel
+                                </Button>
+
                             ],
                         },
                     ]}
                 />
             </ProCard>
 
-            <ProCard className="mt-4" split="vertical">
-                <ProCard
-                    title="Phiên check-in"
-                    colSpan="32%"
-                    extra={<Button icon={<TeamOutlined />} disabled={!selectedEvent} onClick={() => setAddUserModalOpen(true)}>Thêm người tham gia</Button>}
-                >
-                    {selectedEvent ? (
-                        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                            <Descriptions size="small" column={1} bordered>
-                                <Descriptions.Item label="Sự kiện">{selectedEvent.title}</Descriptions.Item>
-                                <Descriptions.Item label="Thời gian">
-                                    {dayjs(selectedEvent.startDate).format("DD/MM/YYYY")} - {dayjs(selectedEvent.endDate).format("DD/MM/YYYY")}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Tiến độ">
-                                    <Tag color="blue">{selectedEvent.checkedInCount}/{selectedEvent.registrationCount} đã check-in</Tag>
-                                </Descriptions.Item>
-                            </Descriptions>
+            <div className="md:flex gap-4">
+                <div className="md:w-2/5 mb-4">
+                    <ProCard
+                        title="Phiên check-in"
+                        extra={<Button icon={<TeamOutlined />} disabled={!selectedEvent} onClick={() => setAddUserModalOpen(true)}>Thêm người tham gia</Button>}
+                    >
+                        {selectedEvent ? (
+                            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                                <Descriptions size="small" column={1} bordered>
+                                    <Descriptions.Item label="Sự kiện">{selectedEvent.title}</Descriptions.Item>
+                                    <Descriptions.Item label="Thời gian">
+                                        {dayjs(selectedEvent.startDate).format("DD/MM/YYYY")} - {dayjs(selectedEvent.endDate).format("DD/MM/YYYY")}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Tiến độ">
+                                        <Tag color="blue">{selectedEvent.checkedInCount}/{selectedEvent.registrationCount} đã check-in</Tag>
+                                    </Descriptions.Item>
+                                </Descriptions>
 
-                            <Alert
-                                type="info"
-                                showIcon
-                                message="Luồng check-in"
-                                description="Mỗi người tham gia được lấy QR theo từng sự kiện. Người quản lý có thể quét bằng camera hoặc dán mã QR vào ô nhập tay."
-                            />
-
-                            {latestCheckIn ? (
                                 <Alert
-                                    type="success"
+                                    type="info"
                                     showIcon
-                                    icon={<CheckCircleOutlined />}
-                                    message={`Vừa check-in: ${latestCheckIn.fullName ?? latestCheckIn.userName}`}
-                                    description={`Thời gian: ${dayjs(latestCheckIn.checkedInAt).format("HH:mm DD/MM/YYYY")}`}
+                                    message="Luồng check-in"
+                                    description="Mỗi người tham gia được lấy QR theo từng sự kiện. Người quản lý có thể quét bằng camera hoặc dán mã QR vào ô nhập tay."
                                 />
-                            ) : null}
 
-                            <Button type="primary" icon={<CameraOutlined />} onClick={() => setScannerOpen(true)}>
-                                Mở camera quét QR
-                            </Button>
-                        </Space>
-                    ) : (
-                        <Alert type="warning" showIcon message="Chưa chọn sự kiện" description="Hãy chọn một sự kiện ở bảng phía trên để quản lý người tham gia và check-in." />
-                    )}
-                </ProCard>
+                                {latestCheckIn ? (
+                                    <Alert
+                                        type="success"
+                                        showIcon
+                                        icon={<CheckCircleOutlined />}
+                                        message={`Vừa check-in: ${latestCheckIn.fullName ?? latestCheckIn.userName}`}
+                                        description={`Thời gian: ${dayjs(latestCheckIn.checkedInAt).format("HH:mm DD/MM/YYYY")}`}
+                                    />
+                                ) : null}
+
+                                <Button type="primary" icon={<CameraOutlined />} onClick={() => setScannerOpen(true)}>
+                                    Mở camera quét QR
+                                </Button>
+                            </Space>
+                        ) : (
+                            <Alert type="warning" showIcon message="Chưa chọn sự kiện" description="Hãy chọn một sự kiện ở bảng phía trên để quản lý người tham gia và check-in." />
+                        )}
+                    </ProCard>
+                </div>
 
                 <ProCard title="Người tham gia">
                     <ProTable<EventUserItem>
@@ -438,6 +454,7 @@ const Index: React.FC = () => {
                                 Quét QR
                             </Button>,
                         ]}
+                        ghost
                         columns={[
                             {
                                 title: "Mã SV",
@@ -445,11 +462,13 @@ const Index: React.FC = () => {
                             },
                             {
                                 title: "Họ và tên",
-                                dataIndex: "fullName",
+                                dataIndex: "name",
+                                search: false
                             },
                             {
                                 title: "Lớp",
                                 dataIndex: "classCode",
+                                search: false
                             },
                             {
                                 title: "Khoa",
@@ -481,9 +500,8 @@ const Index: React.FC = () => {
                             {
                                 title: "Tác vụ",
                                 valueType: "option",
-                                width: 170,
                                 render: (_, record) => [
-                                    <Button key="qr" size="small" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(record)}>
+                                    <Button hidden key="qr" size="small" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(record)}>
                                         QR
                                     </Button>,
                                     <Popconfirm key="remove" title="Xóa người này khỏi sự kiện?" onConfirm={() => void onRemoveUser(record)}>
@@ -496,7 +514,7 @@ const Index: React.FC = () => {
                         ]}
                     />
                 </ProCard>
-            </ProCard>
+            </div>
 
             <ModalForm
                 title={editingEvent ? "Cập nhật sự kiện" : "Tạo sự kiện"}
@@ -542,7 +560,7 @@ const Index: React.FC = () => {
                 okButtonProps={{ disabled: selectedStudents.length === 0 || !selectedEvent }}
             >
                 <ProTable<StudentItem>
-                    rowKey="id"
+                    rowKey="userName"
                     request={apiStudentList}
                     search={{ layout: "vertical" }}
                     pagination={{ pageSize: 5 }}
@@ -586,11 +604,9 @@ const Index: React.FC = () => {
                     {scannerError ? (
                         <Alert type="warning" showIcon message={scannerError} />
                     ) : (
-                        <video
-                            ref={videoRef}
-                            muted
-                            playsInline
-                            style={{ width: "100%", borderRadius: 12, background: "#111827", minHeight: 320, objectFit: "cover" }}
+                        <div 
+                            id="qr-reader" 
+                            style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
                         />
                     )}
 

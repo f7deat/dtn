@@ -10,8 +10,12 @@ using YouthUnion.Core.Entities;
 using YouthUnion.Core.Interfaces.IRepositories;
 using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
+using YouthUnion.Core.Services.Events.Models;
 using YouthUnion.Infrastructure.Data;
 using VnkCore.Data;
+using THPIdentity.Entities;
+using Microsoft.AspNetCore.Identity;
+using THPCore.Interfaces;
 
 namespace YouthUnion.Infrastructure.Repositories;
 
@@ -20,46 +24,140 @@ public class EventRepository(
     VnkDbContext vnkContext,
     IConfiguration configuration,
     IdentityDbTHPContext userContext,
+    UserManager<ApplicationUser> userManager,
+    IHCAService hcaService,
     IHttpContextAccessor httpContextAccessor) : EfRepository<Event>(context), IEventRepository
 {
     private readonly ApplicationDbContext _dbContext = context;
     private readonly VnkDbContext _vnkContext = vnkContext;
     private readonly IConfiguration _configuration = configuration;
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly IdentityDbTHPContext _userContext = userContext;
+    private readonly IHCAService _hcaService = hcaService;
 
     public async Task<THPResult> AddUserAsync(EventUserAddArgs args)
     {
         var eventExists = await _dbContext.Events.AnyAsync(x => x.Id == args.EventId);
-        if (!eventExists)
+        if (!eventExists) return THPResult.Failed("Không tìm thấy sự kiện!");
+
+        var user = await _userContext.Users.FirstOrDefaultAsync(x => x.UserName == args.UserName);
+        if (user is null)
         {
-            return THPResult.Failed("Không tìm thấy sự kiện!");
+            var hpuniUser = await (from u in _vnkContext.Users
+                                   join ud in _vnkContext.UserDetails on u.Id equals ud.UserId
+                                   where u.UserName == args.UserName
+                                   select new
+                                   {
+                                       u.Id,
+                                       u.UserName,
+                                       u.DepartmentId,
+                                       u.LastName,
+                                       u.FirstName,
+                                       u.Email,
+                                       ud.Gender,
+                                       ud.DateOfBirth,
+                                       u.PhoneNumber
+                                   }).FirstOrDefaultAsync();
+            if (hpuniUser is null) return THPResult.Failed("Không tìm thấy người dùng!");
+            user = new ApplicationUser
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserName = args.UserName,
+                Status = UserStatus.Active,
+                UserType = UserType.Student,
+                DepartmentId = hpuniUser.DepartmentId,
+                Name = hpuniUser.LastName + " " + hpuniUser.FirstName,
+                PhoneNumber = hpuniUser.PhoneNumber,
+                Gender = hpuniUser.Gender == 1,
+                Email = hpuniUser.Email,
+                DateOfBirth = hpuniUser.DateOfBirth
+            };
+            await _userManager.CreateAsync(user);
         }
 
-        if (!TryParseUserId(args.UserId, out var userIdValue))
-        {
-            return THPResult.Failed("Mã người tham gia không hợp lệ!");
-        }
-
-        var userExists = await _vnkContext.Users.AnyAsync(x => x.Id == userIdValue);
-        if (!userExists)
-        {
-            return THPResult.Failed("Không tìm thấy người tham gia!");
-        }
-
-        var registrationExists = await _dbContext.UserEvents.AnyAsync(x => x.EventId == args.EventId && x.UserId == args.UserId);
-        if (registrationExists)
-        {
-            return THPResult.Failed("Người dùng này đã có trong sự kiện!");
-        }
+        var registrationExists = await _dbContext.UserEvents.AnyAsync(x => x.EventId == args.EventId && x.UserId == user.Id);
+        if (registrationExists) return THPResult.Failed("Người dùng này đã có trong sự kiện!");
 
         await _dbContext.UserEvents.AddAsync(new UserEvent
         {
             EventId = args.EventId,
-            UserId = args.UserId
+            UserId = user.Id
         });
         await _dbContext.SaveChangesAsync();
         return THPResult.Success;
+    }
+
+    public async Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId)
+    {
+        var eventItem = await _dbContext.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == eventId);
+        if (eventItem is null)
+        {
+            return THPResult<EventCheckInExportData>.Failed("Không tìm thấy sự kiện!");
+        }
+
+        var checkIns = await _dbContext.UserEvents
+            .AsNoTracking()
+            .Where(x => x.EventId == eventId)
+            .OrderByDescending(x => x.CheckedInAt)
+            .ThenBy(x => x.CheckedInAt)
+            .Select(x => new
+            {
+                x.UserId,
+                x.CheckedInAt,
+                x.CheckedInBy
+            })
+            .ToListAsync();
+
+        var userIds = checkIns.Select(x => x.UserId).ToList();
+        var users = await _userContext.Users
+            .Where(x => userIds.Contains(x.Id))
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.UserName,
+                x.Gender,
+                x.PhoneNumber,
+                x.DateOfBirth
+            })
+            .ToListAsync();
+
+        var userNames = users.Select(u => u.UserName).ToList();
+        var userClass = from u in _vnkContext.Users
+                        join d in _vnkContext.Departments on u.DepartmentId equals d.Id
+                        join uc in _vnkContext.ClassUsers on u.Id equals uc.UserId
+                        join c in _vnkContext.Classes on uc.ClassId equals c.Id
+                        where u.UserType == UserType.Student && userNames.Contains(u.UserName)
+                        select new
+                        {
+                            u.UserName,
+                            u.ClassCode,
+                            DepartmentName = d.Name
+                        };
+
+        var items = checkIns.Select(x =>
+        {
+            var user = users.FirstOrDefault(u => u.Id == x.UserId);
+            var classInfo = user is null ? null : userClass.FirstOrDefault(c => c.UserName == user.UserName);
+            return new EventCheckInExportItem(
+                x.UserId,
+                user?.UserName,
+                user?.Name,
+                user?.Gender,
+                user?.PhoneNumber,
+                user?.DateOfBirth,
+                classInfo?.ClassCode,
+                classInfo?.DepartmentName,
+                x.CheckedInAt,
+                x.CheckedInBy);
+        }).ToList();
+
+        return THPResult<EventCheckInExportData>.Ok(new EventCheckInExportData(
+            eventItem.Title,
+            eventItem.StartDate,
+            eventItem.EndDate,
+            items));
     }
 
     public async Task<THPResult<object>> CheckInAsync(EventCheckInArgs args)
@@ -91,7 +189,7 @@ public class EventRepository(
         }
 
         userEvent.CheckedInAt = DateTime.Now;
-        userEvent.CheckedInBy = GetCurrentUserName();
+        userEvent.CheckedInBy = _hcaService.GetUserName();
         await _dbContext.SaveChangesAsync();
 
         if (!TryParseUserId(payload.UserId, out var checkedInUserId))
@@ -133,19 +231,7 @@ public class EventRepository(
             return THPResult<object>.Failed("Người tham gia chưa được thêm vào sự kiện!");
         }
 
-        if (!TryParseUserId(args.UserId, out var userIdValue))
-        {
-            return THPResult<object>.Failed("Mã người tham gia không hợp lệ!");
-        }
-
-        var attendee = await (from user in _vnkContext.Users
-                              where user.Id == userIdValue
-                              select new
-                              {
-                                  user.Id,
-                                  user.UserName,
-                                  FullName = user.FirstName + " " + user.LastName
-                              }).FirstOrDefaultAsync();
+        var attendee = await _userManager.FindByIdAsync(args.UserId);
 
         if (attendee is null)
         {
@@ -157,7 +243,7 @@ public class EventRepository(
             args.EventId,
             attendee.Id,
             attendee.UserName,
-            attendee.FullName,
+            FullName = attendee.Name,
             QrCode = BuildQrCode(args.EventId, args.UserId)
         });
     }
@@ -176,12 +262,7 @@ public class EventRepository(
                         select new
                         {
                             Id = userEvent.UserId,
-                            UserId = userEvent.UserId,
-                            //user.UserName,
-                            //FullName = user.FirstName + " " + user.LastName,
-                            //user.ClassCode,
-                            //user.ClassName,
-                            //DepartmentName = department != null ? department.Name : null,
+                            userEvent.UserId,
                             userEvent.CheckedInAt,
                             userEvent.CheckedInBy,
                             IsCheckedIn = userEvent.CheckedInAt.HasValue
@@ -201,23 +282,50 @@ public class EventRepository(
 
             query = query.OrderByDescending(x => x.CheckedInAt).ThenBy(x => x.CheckedInAt);
             var data = await query.ToListAsync();
-            var users = await _vnkContext.Users.Where(x => x.UserType == THPIdentity.Entities.UserType.Student)
+            var userIds = data.Select(x => x.UserId).ToList();
+            var users = await _userContext.Users.Where(x => x.UserType == UserType.Student && userIds.Contains(x.Id))
                 .Select(x => new
                 {
-                    Id = x.Id,
-                    FullName = $"{x.LastName} {x.FirstName}",
-                    x.ClassCode,
-                    x.ClassName,
-                    x.UserName
+                    x.Id,
+                    x.Name,
+                    x.UserName,
+                    x.Gender,
+                    x.PhoneNumber,
+                    x.DateOfBirth
                 })
                 .ToListAsync();
+            var userNames = users.Select(u => u.UserName).ToList();
+
+            var userClass = from u in _vnkContext.Users
+                            join d in _vnkContext.Departments on u.DepartmentId equals d.Id
+                            join uc in _vnkContext.ClassUsers on u.Id equals uc.UserId
+                            join c in _vnkContext.Classes on uc.ClassId equals c.Id
+                            where u.UserType == UserType.Student && userNames.Contains(u.UserName)
+                            select new
+                            {
+                                u.UserName,
+                                u.ClassCode,
+                                DepartmentName = d.Name
+                            };
 
             return new ListResult<object>(data.Select(x =>
             {
-                var user = users.FirstOrDefault(u => u.Id == x.UserId);
+                var user = users.First(u => u.Id == x.UserId);
+                var classInfo = userClass.FirstOrDefault(c => c.UserName == user.UserName);
                 return new
                 {
-                    Id = x.Id,
+                    x.Id,
+                    x.UserId,
+                    x.IsCheckedIn,
+                    x.CheckedInBy,
+                    x.CheckedInAt,
+                    user.UserName,
+                    user.Name,
+                    user.Gender,
+                    user.PhoneNumber,
+                    user.DateOfBirth,
+                    classInfo?.ClassCode,
+                    classInfo?.DepartmentName
                 };
             }), await query.CountAsync(), filterOptions);
         }
@@ -257,7 +365,7 @@ public class EventRepository(
 
     public async Task<THPResult<object>> GetMyQrAsync(Guid eventId)
     {
-        var currentUserId = GetCurrentUserId();
+        var currentUserId = _hcaService.GetUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
             return THPResult<object>.Failed("Không xác định được người dùng hiện tại!");
@@ -269,18 +377,13 @@ public class EventRepository(
             return THPResult<object>.Failed("Bạn không có trong danh sách tham gia sự kiện này!");
         }
 
-        if (!TryParseUserId(currentUserId, out var userIdValue))
-        {
-            return THPResult<object>.Failed("Mã người dùng không hợp lệ!");
-        }
-
-        var attendee = await (from user in _vnkContext.Users
-                              where user.Id == userIdValue
+        var attendee = await (from user in _userContext.Users
+                              where user.Id == currentUserId
                               select new
                               {
                                   user.Id,
                                   user.UserName,
-                                  FullName = user.FirstName + " " + user.LastName
+                                  FullName = user.Name
                               }).FirstOrDefaultAsync();
 
         if (attendee is null)

@@ -17,6 +17,7 @@ body,
 .ant-layout {
   min-height: 100vh;
 }
+
 .ant-pro-sider.ant-layout-sider.ant-pro-sider-fixed {
   left: unset;
 }
@@ -31,21 +32,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-ul,
-ol {
-  list-style: none;
-}
-
 @media (max-width: 768px) {
+
+  .ant-pro-page-container {
+    .ant-pro-page-container-warp-page-header {
+      padding-inline-start: 1rem;
+      padding-inline-end: 1rem;
+    }
+    .ant-pro-page-container-children-container {
+      padding-inline: 1rem;
+    }
+  }
+
   .ant-table {
     width: 100%;
     overflow-x: auto;
-    &-thead > tr,
-    &-tbody > tr {
-      > th,
-      > td {
+
+    &-thead>tr,
+    &-tbody>tr {
+
+      >th,
+      >td {
         white-space: pre;
-        > span {
+
+        >span {
           display: block;
         }
       }
