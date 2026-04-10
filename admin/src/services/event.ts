@@ -56,3 +56,9 @@ export async function apiEventExport(eventId: string) {
         responseType: "blob"
     });
 }
+
+export async function apiEventDelete(eventId: string) {
+    return request(`event/${eventId}`, {
+        method: "DELETE"
+    });
+}

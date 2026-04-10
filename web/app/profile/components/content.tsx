@@ -87,6 +87,9 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
                       <Tag icon={<CalendarOutlined />} color="blue">
                         {dayjs(eventItem.startDate).format("DD/MM/YYYY")}
                       </Tag>
+                      {eventItem.eventType === 1 && (
+                        <Tag color="processing">Công khai</Tag>
+                      )}
                       <Tag icon={<CheckCircleOutlined />} color={eventItem.isCheckedIn ? "success" : "default"}>
                         {eventItem.isCheckedIn ? "Đã check-in" : "Chưa check-in"}
                       </Tag>

@@ -1,4 +1,6 @@
-﻿namespace YouthUnion.Core.Services.Events.Args;
+﻿using YouthUnion.Core.Entities;
+
+namespace YouthUnion.Core.Services.Events.Args;
 
 public class EventCreateArgs
 {
@@ -8,4 +10,5 @@ public class EventCreateArgs
     public DateOnly EndDate { get; set; }
     public string? Content { get; set; }
     public string? Thumbnail { get; set; }
+    public EventType EventType { get; set; } = EventType.Limited;
 }

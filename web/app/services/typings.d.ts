@@ -28,6 +28,7 @@ namespace API {
         startDate: string;
         endDate: string;
         thumbnail?: string;
+        eventType?: 0 | 1; // 0 = Limited, 1 = Public
         checkedInAt?: string;
         checkedInBy?: string;
         isCheckedIn: boolean;

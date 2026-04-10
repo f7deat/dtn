@@ -2,6 +2,7 @@ import {
     apiEventAddUser,
     apiEventCheckIn,
     apiEventCreate,
+    apiEventDelete,
     apiEventExport,
     apiEventGenerateQr,
     apiEventList,
@@ -25,6 +26,7 @@ import {
     ProCard,
     ProFormDatePicker,
     ProFormInstance,
+    ProFormRadio,
     ProFormText,
     ProFormTextArea,
     ProTable,
@@ -42,6 +44,7 @@ interface EventItem {
     endDate: string;
     registrationCount: number;
     checkedInCount: number;
+    eventType: 0 | 1; // 0 = Limited, 1 = Public
 }
 
 interface EventUserItem {
@@ -101,6 +104,7 @@ const Index: React.FC = () => {
                 description: editingEvent.description,
                 startDate: dayjs(editingEvent.startDate),
                 endDate: dayjs(editingEvent.endDate),
+                eventType: editingEvent.eventType,
             });
         }
         if (!editingEvent) {
@@ -332,6 +336,16 @@ const Index: React.FC = () => {
                             dataIndex: "title",
                         },
                         {
+                            title: "Loại",
+                            dataIndex: "eventType",
+                            valueEnum: {
+                                0: { text: "Giới hạn", status: "Default" },
+                                1: { text: "Công khai", status: "Processing" },
+                            },
+                            search: false,
+                            width: 110,
+                        },
+                        {
                             title: "Bắt đầu",
                             dataIndex: "startDate",
                             valueType: "date",
@@ -362,7 +376,7 @@ const Index: React.FC = () => {
                         {
                             title: "Tác vụ",
                             valueType: "option",
-                            width: 140,
+                            width: 180,
                             render: (_, record) => [
                                 <Button key="manage" size="small" type={selectedEvent?.id === record.id ? "primary" : "default"} onClick={() => setSelectedEvent(record)}>
                                     Quản lý
@@ -381,7 +395,22 @@ const Index: React.FC = () => {
                                     window.URL.revokeObjectURL(url);
                                 }}>
                                     Xuất Excel
-                                </Button>
+                                </Button>,
+                                <Popconfirm 
+                                    key="delete" 
+                                    title="Xóa sự kiện này?" 
+                                    description="Dữ liệu check-in cũng sẽ bị xóa." 
+                                    onConfirm={async () => {
+                                        await apiEventDelete(record.id);
+                                        message.success("Đã xóa sự kiện");
+                                        eventActionRef.current?.reload();
+                                        if (selectedEvent?.id === record.id) {
+                                            setSelectedEvent(undefined);
+                                        }
+                                    }}
+                                >
+                                    <Button key="delete" size="small" danger>Xóa</Button>
+                                </Popconfirm>
 
                             ],
                         },
@@ -393,7 +422,7 @@ const Index: React.FC = () => {
                 <div className="md:w-2/5 mb-4">
                     <ProCard
                         title="Phiên check-in"
-                        extra={<Button icon={<TeamOutlined />} disabled={!selectedEvent} onClick={() => setAddUserModalOpen(true)}>Thêm người tham gia</Button>}
+                        extra={<Button icon={<TeamOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>Thêm người tham gia</Button>}
                     >
                         {selectedEvent ? (
                             <Space direction="vertical" size="middle" style={{ width: "100%" }}>
@@ -447,7 +476,7 @@ const Index: React.FC = () => {
                             return apiEventUserList({ ...params, eventId: selectedEvent.id });
                         }}
                         toolBarRender={() => [
-                            <Button key="add-user" icon={<PlusOutlined />} disabled={!selectedEvent} onClick={() => setAddUserModalOpen(true)}>
+                            <Button key="add-user" icon={<PlusOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>
                                 Thêm người tham gia
                             </Button>,
                             <Button key="scan-inline" type="primary" icon={<CameraOutlined />} disabled={!selectedEvent} onClick={() => setScannerOpen(true)}>
@@ -534,6 +563,16 @@ const Index: React.FC = () => {
                     rules={[{ required: true, message: "Vui lòng nhập tên sự kiện" }]}
                 />
                 <ProFormTextArea name="description" label="Mô tả ngắn" />
+                <ProFormRadio.Group
+                    name="eventType"
+                    label="Loại sự kiện"
+                    initialValue={0}
+                    options={[
+                        { label: "Giới hạn (chỉ sinh viên được thêm)", value: 0 },
+                        { label: "Công khai (tất cả sinh viên)", value: 1 },
+                    ]}
+                    rules={[{ required: true, message: "Vui lòng chọn loại sự kiện" }]}
+                />
                 <ProFormDatePicker
                     name="startDate"
                     label="Ngày bắt đầu"

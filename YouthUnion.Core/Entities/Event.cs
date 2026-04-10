@@ -15,7 +15,14 @@ public class Event : BaseEntity
     public DateOnly EndDate { get; set; }
     [StringLength(2048)]
     public string? Thumbnail { get; set; }
+    public EventType EventType { get; set; } = EventType.Limited;
 
     public virtual ICollection<EventRegistration>? EventRegistrations { get; set; }
     public virtual ICollection<UserEvent>? UserEvents { get; set; }
+}
+
+public enum EventType
+{
+    Limited = 0,
+    Public = 1
 }

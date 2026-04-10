@@ -177,6 +177,12 @@ public class EventRepository(
             return THPResult<object>.Failed("Mã QR không thuộc sự kiện đang chọn!");
         }
 
+        var eventItem = await _dbContext.Events.FirstOrDefaultAsync(x => x.Id == payload.EventId);
+        if (eventItem is null)
+        {
+            return THPResult<object>.Failed("Không tìm thấy sự kiện!");
+        }
+
         var student = await _userManager.FindByIdAsync(payload.UserId);
         if (student is null)
         {
@@ -184,9 +190,24 @@ public class EventRepository(
         }
 
         var userEvent = await _dbContext.UserEvents.FirstOrDefaultAsync(x => x.EventId == payload.EventId && x.UserId == payload.UserId);
+
+        // For public events, auto-create UserEvent if not exists
         if (userEvent is null)
         {
-            return THPResult<object>.Failed("Người tham gia chưa được thêm vào sự kiện!");
+            if (eventItem.EventType == EventType.Public)
+            {
+                userEvent = new UserEvent
+                {
+                    EventId = payload.EventId,
+                    UserId = payload.UserId
+                };
+                await _dbContext.UserEvents.AddAsync(userEvent);
+                await _dbContext.SaveChangesAsync();
+            }
+            else
+            {
+                return THPResult<object>.Failed("Người tham gia chưa được thêm vào sự kiện!");
+            }
         }
 
         if (userEvent.CheckedInAt.HasValue)
@@ -344,24 +365,54 @@ public class EventRepository(
             return await ListResult<object>.Success(Enumerable.Empty<object>().AsQueryable(), filterOptions);
         }
 
-        var query = from userEvent in _dbContext.UserEvents.AsNoTracking()
-                    join eventItem in _dbContext.Events.AsNoTracking() on userEvent.EventId equals eventItem.Id
-                    where userEvent.UserId == currentUserId
-                    orderby eventItem.StartDate descending, eventItem.Title
-                    select new
-                    {
-                        eventItem.Id,
-                        eventItem.Title,
-                        eventItem.Description,
-                        eventItem.StartDate,
-                        eventItem.EndDate,
-                        eventItem.Thumbnail,
-                        userEvent.CheckedInAt,
-                        userEvent.CheckedInBy,
-                        IsCheckedIn = userEvent.CheckedInAt.HasValue
-                    };
+        // Get events where user is registered
+        try
+        {
+            var myRegisteredEvents = from userEvent in _dbContext.UserEvents.AsNoTracking()
+                                     join eventItem in _dbContext.Events.AsNoTracking() on userEvent.EventId equals eventItem.Id
+                                     where userEvent.UserId == currentUserId
+                                     select new
+                                     {
+                                         eventItem.Id,
+                                         eventItem.Title,
+                                         eventItem.Description,
+                                         eventItem.StartDate,
+                                         eventItem.EndDate,
+                                         eventItem.Thumbnail,
+                                         eventItem.EventType,
+                                         CheckedInAt = userEvent.CheckedInAt,
+                                         CheckedInBy = userEvent.CheckedInBy,
+                                         IsCheckedIn = userEvent.CheckedInAt.HasValue
+                                     };
 
-        return await ListResult<object>.Success(query.Select(x => (object)x), filterOptions);
+            // Get all public events
+            var publicEvents = from eventItem in _dbContext.Events.AsNoTracking()
+                               where eventItem.EventType == EventType.Public
+                               select new
+                               {
+                                   eventItem.Id,
+                                   eventItem.Title,
+                                   eventItem.Description,
+                                   eventItem.StartDate,
+                                   eventItem.EndDate,
+                                   eventItem.Thumbnail,
+                                   eventItem.EventType,
+                                   CheckedInAt = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt).FirstOrDefault(),
+                                   CheckedInBy = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInBy).FirstOrDefault(),
+                                   IsCheckedIn = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt.HasValue).FirstOrDefault()
+                               };
+
+            // Combine and remove duplicates
+            var query = myRegisteredEvents.Union(publicEvents)
+                                          .OrderByDescending(x => x.StartDate)
+                                          .ThenBy(x => x.Title);
+
+            return await ListResult<object>.Success(query, filterOptions);
+        }
+        catch (Exception ex)
+        {
+            return ListResult<object>.Failed(ex.ToString());
+        }
     }
 
     public async Task<THPResult<object>> GetMyQrAsync(Guid eventId)
@@ -372,10 +423,21 @@ public class EventRepository(
             return THPResult<object>.Failed("Không xác định được người dùng hiện tại!");
         }
 
-        var userEvent = await _dbContext.UserEvents.AsNoTracking().AnyAsync(x => x.EventId == eventId && x.UserId == currentUserId);
-        if (!userEvent)
+        var eventItem = await _dbContext.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == eventId);
+        if (eventItem is null)
         {
-            return THPResult<object>.Failed("Bạn không có trong danh sách tham gia sự kiện này!");
+            return THPResult<object>.Failed("Không tìm thấy sự kiện!");
+        }
+
+        // For public events, allow all users to get QR
+        // For limited events, user must be registered
+        if (eventItem.EventType == EventType.Limited)
+        {
+            var userEvent = await _dbContext.UserEvents.AsNoTracking().AnyAsync(x => x.EventId == eventId && x.UserId == currentUserId);
+            if (!userEvent)
+            {
+                return THPResult<object>.Failed("Bạn không có trong danh sách tham gia sự kiện này!");
+            }
         }
 
         var attendee = await (from user in _userContext.Users
@@ -416,6 +478,7 @@ public class EventRepository(
                 x.StartDate,
                 x.EndDate,
                 x.Thumbnail,
+                x.EventType,
                 RegistrationCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id),
                 CheckedInCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id && u.CheckedInAt != null)
             });

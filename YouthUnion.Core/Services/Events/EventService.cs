@@ -26,7 +26,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             Content = args.Content,
             EndDate = args.EndDate,
             StartDate = args.StartDate,
-            Thumbnail = args.Thumbnail
+            Thumbnail = args.Thumbnail,
+            EventType = args.EventType
         });
         return THPResult.Success;
     }
@@ -51,7 +52,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             data.Content,
             data.StartDate,
             data.EndDate,
-            data.Thumbnail
+            data.Thumbnail,
+            data.EventType
         });
     }
 
@@ -79,6 +81,7 @@ public class EventService(IEventRepository _eventRepository) : IEventService
         data.StartDate = args.StartDate;
         data.EndDate = args.EndDate;
         data.Thumbnail = args.Thumbnail;
+        data.EventType = args.EventType;
         await _eventRepository.UpdateAsync(data);
         return THPResult.Success;
     }
