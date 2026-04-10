@@ -177,6 +177,12 @@ public class EventRepository(
             return THPResult<object>.Failed("Mã QR không thuộc sự kiện đang chọn!");
         }
 
+        var student = await _userManager.FindByIdAsync(payload.UserId);
+        if (student is null)
+        {
+            return THPResult<object>.Failed("Không tìm thấy người tham gia!");
+        }
+
         var userEvent = await _dbContext.UserEvents.FirstOrDefaultAsync(x => x.EventId == payload.EventId && x.UserId == payload.UserId);
         if (userEvent is null)
         {
@@ -192,15 +198,10 @@ public class EventRepository(
         userEvent.CheckedInBy = _hcaService.GetUserName();
         await _dbContext.SaveChangesAsync();
 
-        if (!TryParseUserId(payload.UserId, out var checkedInUserId))
-        {
-            return THPResult<object>.Failed("Mã người tham gia không hợp lệ!");
-        }
-
         var attendee = await (from user in _vnkContext.Users
                               join detail in _vnkContext.UserDetails on user.Id equals detail.UserId into userDetails
                               from detail in userDetails.DefaultIfEmpty()
-                              where user.Id == checkedInUserId
+                              where user.UserName == student.UserName
                               select new
                               {
                                   user.Id,
