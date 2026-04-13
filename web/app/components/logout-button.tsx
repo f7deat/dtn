@@ -2,7 +2,6 @@
 
 import { faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useRouter } from "next/navigation";
 
 interface LogoutButtonProps {
   className?: string;
@@ -10,14 +9,10 @@ interface LogoutButtonProps {
 }
 
 const LogoutButton: React.FC<LogoutButtonProps> = ({ className, variant = "default" }) => {
-  const router = useRouter();
 
   const onLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-    router.push("/");
-    router.refresh();
+    localStorage.removeItem("thp_token");
+    window.location.reload();
   };
 
   const defaultStyle = "border border-slate-200 px-4 py-3 rounded font-bold uppercase hover:bg-slate-50 transition-colors";
