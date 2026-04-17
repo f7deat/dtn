@@ -30,8 +30,4 @@
     <ProjectReference Include="..\YouthUnion.Infrastructure\YouthUnion.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="YouthUnion.Core\Services\Events\Models\" />
-  </ItemGroup>
-
 </Project>

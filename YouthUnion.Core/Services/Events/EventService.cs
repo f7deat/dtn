@@ -15,7 +15,7 @@ public class EventService(IEventRepository _eventRepository) : IEventService
         return _eventRepository.AddUserAsync(args);
     }
 
-    public Task<THPResult<object>> CheckInAsync(EventCheckInArgs args) => _eventRepository.CheckInAsync(args);
+    public Task<THPResult<object>> ScanQrAsync(EventCheckInArgs args) => _eventRepository.ScanQrAsync(args);
 
     public async Task<THPResult> CreateAsync(EventCreateArgs args)
     {

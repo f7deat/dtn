@@ -135,6 +135,13 @@ namespace YouthUnion.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<DateTime?>("CheckedOutAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CheckedOutBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.HasKey("EventId", "UserId");
 
                     b.ToTable("UserEvents");

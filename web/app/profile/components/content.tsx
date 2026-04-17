@@ -93,17 +93,27 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
                       <Tag icon={<CheckCircleOutlined />} color={eventItem.isCheckedIn ? "success" : "default"}>
                         {eventItem.isCheckedIn ? "Đã check-in" : "Chưa check-in"}
                       </Tag>
+                      {eventItem.checkedOutAt ? (
+                        <Tag color="warning">Đã checkout</Tag>
+                      ) : null}
                     </Space>
 
-                    {eventItem.checkedInAt ? (
-                      <Typography.Text type="secondary">
-                        Đã xác nhận lúc {dayjs(eventItem.checkedInAt).format("HH:mm DD/MM/YYYY")}
-                      </Typography.Text>
-                    ) : (
-                      <Typography.Text type="secondary">
-                        Hãy mở mã QR khi tham gia sự kiện.
-                      </Typography.Text>
-                    )}
+                    <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                      {eventItem.checkedInAt ? (
+                        <Typography.Text type="secondary">
+                          Check-in lúc {dayjs(eventItem.checkedInAt).format("HH:mm DD/MM/YYYY")}
+                        </Typography.Text>
+                      ) : (
+                        <Typography.Text type="secondary">
+                          Hãy mở mã QR khi tham gia sự kiện.
+                        </Typography.Text>
+                      )}
+                      {eventItem.checkedOutAt ? (
+                        <Typography.Text type="secondary">
+                          Checkout lúc {dayjs(eventItem.checkedOutAt).format("HH:mm DD/MM/YYYY")}
+                        </Typography.Text>
+                      ) : null}
+                    </Space>
 
                     <Button type="primary" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(eventItem.id)}>
                       Lấy mã QR

@@ -12,6 +12,9 @@ public class UserEvent
     public DateTime? CheckedInAt { get; set; }
     [StringLength(256)]
     public string? CheckedInBy { get; set; }
+    public DateTime? CheckedOutAt { get; set; }
+    [StringLength(256)]
+    public string? CheckedOutBy { get; set; }
 
     public virtual Event? Event { get; set; }
 }

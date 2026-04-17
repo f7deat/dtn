@@ -31,7 +31,7 @@ import {
     ProFormTextArea,
     ProTable,
 } from "@ant-design/pro-components";
-import { Button, Alert, Descriptions, Input, message, Modal, Popconfirm, QRCode, Space, Tag, Typography } from "antd";
+import { Button, Alert, Descriptions, Input, message, Modal, Popconfirm, QRCode, Radio, Space, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
@@ -57,7 +57,25 @@ interface EventUserItem {
     departmentName?: string;
     checkedInAt?: string;
     checkedInBy?: string;
+    checkedOutAt?: string;
+    checkedOutBy?: string;
     isCheckedIn: boolean;
+    isCheckedOut?: boolean;
+    attendanceStatus?: "not-checked-in" | "checked-in" | "checked-out";
+}
+
+type AttendanceAction = "check-in" | "check-out";
+
+interface AttendanceScanResult {
+    action: AttendanceAction;
+    userName?: string;
+    fullName?: string;
+    classCode?: string;
+    className?: string;
+    checkedInAt?: string;
+    checkedInBy?: string;
+    checkedOutAt?: string;
+    checkedOutBy?: string;
 }
 
 interface StudentItem {
@@ -80,7 +98,7 @@ const Index: React.FC = () => {
     const eventFormRef = useRef<ProFormInstance>(null);
     const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
     const scannerInitializedRef = useRef(false);
-    const checkInRef = useRef(false);
+    const scanRequestRef = useRef(false);
     const lastScanRef = useRef<{ value: string; at: number; }>({ value: "", at: 0 });
 
     const [selectedEvent, setSelectedEvent] = useState<EventItem>();
@@ -95,7 +113,8 @@ const Index: React.FC = () => {
     const [qrPayload, setQrPayload] = useState<{ qrCode: string; fullName?: string; userName?: string; }>();
     const [manualQrCode, setManualQrCode] = useState("");
     const [scannerError, setScannerError] = useState<string>();
-    const [latestCheckIn, setLatestCheckIn] = useState<any>();
+    const [scanAction, setScanAction] = useState<AttendanceAction>("check-in");
+    const [latestScan, setLatestScan] = useState<AttendanceScanResult>();
 
     useEffect(() => {
         if (editingEvent && eventFormRef.current) {
@@ -166,27 +185,31 @@ const Index: React.FC = () => {
         }
     };
 
-    const handleCheckIn = async (qrCode: string) => {
-        if (!selectedEvent || checkInRef.current) {
+    const handleAttendanceScan = async (qrCode: string) => {
+        const normalizedQrCode = qrCode.trim();
+        if (!selectedEvent || scanRequestRef.current || !normalizedQrCode) {
             return;
         }
 
         const now = Date.now();
-        if (lastScanRef.current.value === qrCode && now - lastScanRef.current.at < 3000) {
+        const scanKey = `${scanAction}:${normalizedQrCode}`;
+        if (lastScanRef.current.value === scanKey && now - lastScanRef.current.at < 3000) {
             return;
         }
 
-        lastScanRef.current = { value: qrCode, at: now };
-        checkInRef.current = true;
+        lastScanRef.current = { value: scanKey, at: now };
+        scanRequestRef.current = true;
         try {
-            const response = await apiEventCheckIn({ eventId: selectedEvent.id, qrCode });
-            setLatestCheckIn(response);
+            const res = await apiEventCheckIn({ eventId: selectedEvent.id, qrCode: normalizedQrCode, action: scanAction });
+            const response = res.data;
+            setLatestScan(response);
             setManualQrCode("");
-            message.success(`Đã check-in ${response.fullName ?? response.userName ?? "người tham gia"}`);
+            const actionLabel = response.action === "check-out" ? "checkout" : "check-in";
+            message.success(`Đã ${actionLabel} ${response.fullName ?? response.userName ?? "người tham gia"}`);
             userActionRef.current?.reload();
             eventActionRef.current?.reload();
         } finally {
-            checkInRef.current = false;
+            scanRequestRef.current = false;
         }
     };
 
@@ -207,7 +230,7 @@ const Index: React.FC = () => {
                     qrbox: { width: 250, height: 250 }
                 },
                 (decodedText) => {
-                    void handleCheckIn(decodedText);
+                    void handleAttendanceScan(decodedText);
                 },
                 () => {
                     // Ignore scan failures
@@ -310,7 +333,7 @@ const Index: React.FC = () => {
                     Tạo sự kiện
                 </Button>,
                 <Button key="scan" icon={<CameraOutlined />} disabled={!selectedEvent} onClick={() => setScannerOpen(true)}>
-                    Quét QR check-in
+                    Quét QR
                 </Button>,
             ]}
         >
@@ -421,7 +444,7 @@ const Index: React.FC = () => {
             <div className="md:flex gap-4">
                 <div className="md:w-2/5 mb-4">
                     <ProCard
-                        title="Phiên check-in"
+                        title="Phiên điểm danh"
                         extra={<Button icon={<TeamOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>Thêm người tham gia</Button>}
                     >
                         {selectedEvent ? (
@@ -439,17 +462,28 @@ const Index: React.FC = () => {
                                 <Alert
                                     type="info"
                                     showIcon
-                                    message="Luồng check-in"
-                                    description="Mỗi người tham gia được lấy QR theo từng sự kiện. Người quản lý có thể quét bằng camera hoặc dán mã QR vào ô nhập tay."
+                                    message="Luồng check-in / checkout"
+                                    description="Chọn thao tác trước khi quét. Mỗi người tham gia dùng cùng một mã QR cho check-in và checkout của sự kiện."
                                 />
 
-                                {latestCheckIn ? (
+                                <Radio.Group
+                                    value={scanAction}
+                                    onChange={(event) => setScanAction(event.target.value as AttendanceAction)}
+                                    optionType="button"
+                                    buttonStyle="solid"
+                                    options={[
+                                        { label: "Check-in", value: "check-in" },
+                                        { label: "Checkout", value: "check-out" },
+                                    ]}
+                                />
+
+                                {latestScan ? (
                                     <Alert
-                                        type="success"
+                                        type={latestScan.action === "check-out" ? "warning" : "success"}
                                         showIcon
                                         icon={<CheckCircleOutlined />}
-                                        message={`Vừa check-in: ${latestCheckIn.fullName ?? latestCheckIn.userName}`}
-                                        description={`Thời gian: ${dayjs(latestCheckIn.checkedInAt).format("HH:mm DD/MM/YYYY")}`}
+                                        message={`Vừa ${latestScan.action === "check-out" ? "checkout" : "check-in"}: ${latestScan.fullName ?? latestScan.userName}`}
+                                        description={`Thời gian: ${dayjs(latestScan.action === "check-out" ? latestScan.checkedOutAt : latestScan.checkedInAt).format("HH:mm DD/MM/YYYY")}`}
                                     />
                                 ) : null}
 
@@ -458,7 +492,7 @@ const Index: React.FC = () => {
                                 </Button>
                             </Space>
                         ) : (
-                            <Alert type="warning" showIcon message="Chưa chọn sự kiện" description="Hãy chọn một sự kiện ở bảng phía trên để quản lý người tham gia và check-in." />
+                            <Alert type="warning" showIcon message="Chưa chọn sự kiện" description="Hãy chọn một sự kiện ở bảng phía trên để quản lý người tham gia và quét QR." />
                         )}
                     </ProCard>
                 </div>
@@ -506,10 +540,11 @@ const Index: React.FC = () => {
                             },
                             {
                                 title: "Trạng thái",
-                                dataIndex: "isCheckedIn",
+                                dataIndex: "attendanceStatus",
                                 valueEnum: {
-                                    false: { text: "Chưa check-in", status: "Default" },
-                                    true: { text: "Đã check-in", status: "Success" },
+                                    "not-checked-in": { text: "Chưa check-in", status: "Default" },
+                                    "checked-in": { text: "Đã check-in", status: "Success" },
+                                    "checked-out": { text: "Đã checkout", status: "Warning" },
                                 },
                                 width: 130,
                             },
@@ -523,6 +558,19 @@ const Index: React.FC = () => {
                             {
                                 title: "Người xác nhận",
                                 dataIndex: "checkedInBy",
+                                search: false,
+                                width: 150,
+                            },
+                            {
+                                title: "Thời gian ra",
+                                dataIndex: "checkedOutAt",
+                                valueType: "dateTime",
+                                search: false,
+                                width: 180,
+                            },
+                            {
+                                title: "Người checkout",
+                                dataIndex: "checkedOutBy",
                                 search: false,
                                 width: 150,
                             },
@@ -633,13 +681,24 @@ const Index: React.FC = () => {
             </Modal>
 
             <Modal
-                title="Quét QR check-in"
+                title={scanAction === "check-out" ? "Quét QR checkout" : "Quét QR check-in"}
                 open={scannerOpen}
                 onCancel={() => setScannerOpen(false)}
                 footer={null}
                 width={720}
             >
                 <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                    <Radio.Group
+                        value={scanAction}
+                        onChange={(event) => setScanAction(event.target.value as AttendanceAction)}
+                        optionType="button"
+                        buttonStyle="solid"
+                        options={[
+                            { label: "Check-in", value: "check-in" },
+                            { label: "Checkout", value: "check-out" },
+                        ]}
+                    />
+
                     {scannerError ? (
                         <Alert type="warning" showIcon message={scannerError} />
                     ) : (
@@ -653,15 +712,15 @@ const Index: React.FC = () => {
                         type="info"
                         showIcon
                         message="Nhập mã thủ công"
-                        description="Nếu camera không quét được, hãy dán chuỗi QR của người tham gia vào ô bên dưới để check-in."
+                        description={`Nếu camera không quét được, hãy dán chuỗi QR của người tham gia vào ô bên dưới để ${scanAction === "check-out" ? "checkout" : "check-in"}.`}
                     />
 
                     <Input.Search
                         placeholder="Dán chuỗi QR vào đây"
-                        enterButton="Check-in"
+                        enterButton={scanAction === "check-out" ? "Checkout" : "Check-in"}
                         value={manualQrCode}
                         onChange={(event) => setManualQrCode(event.target.value)}
-                        onSearch={(value) => void handleCheckIn(value)}
+                        onSearch={(value) => void handleAttendanceScan(value)}
                     />
                 </Space>
             </Modal>

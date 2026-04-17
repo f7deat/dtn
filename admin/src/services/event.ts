@@ -43,8 +43,8 @@ export async function apiEventGenerateQr(data: { eventId: string; userId: string
     });
 }
 
-export async function apiEventCheckIn(data: { eventId?: string; qrCode: string; }) {
-    return request("event/check-in", {
+export async function apiEventCheckIn(data: { eventId?: string; qrCode: string; action?: "check-in" | "check-out"; }) {
+    return request("event/scan", {
         method: "POST",
         data
     });

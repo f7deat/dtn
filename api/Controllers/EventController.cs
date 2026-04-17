@@ -41,8 +41,11 @@ public class EventController(IEventService _eventService) : BaseController
     [HttpPost("qr")]
     public async Task<IActionResult> GenerateQrAsync([FromBody] EventUserQrArgs args) => Ok(await _eventService.GenerateQrAsync(args));
 
+    [HttpPost("scan")]
+    public async Task<IActionResult> ScanQrAsync([FromBody] EventCheckInArgs args) => Ok(await _eventService.ScanQrAsync(args));
+
     [HttpPost("check-in")]
-    public async Task<IActionResult> CheckInAsync([FromBody] EventCheckInArgs args) => Ok(await _eventService.CheckInAsync(args));
+    public async Task<IActionResult> CheckInAsync([FromBody] EventCheckInArgs args) => Ok(await _eventService.ScanQrAsync(args));
 
     [HttpGet("my-qr/{eventId}")]
     public async Task<IActionResult> GetMyQrAsync([FromRoute] Guid eventId) => Ok(await _eventService.GetMyQrAsync(eventId));
@@ -70,7 +73,9 @@ public class EventController(IEventService _eventService) : BaseController
             "Ngày sinh",
             "SĐT",
             "Check-in lúc",
-            "Check-in bởi"
+            "Check-in bởi",
+            "Checkout lúc",
+            "Checkout bởi"
         };
 
         for (var i = 0; i < headers.Length; i++)
@@ -93,6 +98,8 @@ public class EventController(IEventService _eventService) : BaseController
             worksheet.Cells[row, 8].Value = item.PhoneNumber;
             worksheet.Cells[row, 9].Value = item.CheckedInAt?.ToString("dd/MM/yyyy HH:mm");
             worksheet.Cells[row, 10].Value = item.CheckedInBy;
+            worksheet.Cells[row, 11].Value = item.CheckedOutAt?.ToString("dd/MM/yyyy HH:mm");
+            worksheet.Cells[row, 12].Value = item.CheckedOutBy;
             row++;
         }
 

@@ -105,7 +105,9 @@ public class EventRepository(
             {
                 x.UserId,
                 x.CheckedInAt,
-                x.CheckedInBy
+                x.CheckedInBy,
+                x.CheckedOutAt,
+                x.CheckedOutBy
             })
             .ToListAsync();
 
@@ -150,7 +152,9 @@ public class EventRepository(
                 classInfo?.ClassCode,
                 classInfo?.DepartmentName,
                 x.CheckedInAt,
-                x.CheckedInBy);
+                x.CheckedInBy,
+                x.CheckedOutAt,
+                x.CheckedOutBy);
         }).ToList();
 
         return THPResult<EventCheckInExportData>.Ok(new EventCheckInExportData(
@@ -160,11 +164,17 @@ public class EventRepository(
             items));
     }
 
-    public async Task<THPResult<object>> CheckInAsync(EventCheckInArgs args)
+    public async Task<THPResult<object>> ScanQrAsync(EventCheckInArgs args)
     {
         if (string.IsNullOrWhiteSpace(args.QrCode))
         {
             return THPResult<object>.Failed("Mã QR không hợp lệ!");
+        }
+
+        var scanAction = NormalizeScanAction(args.Action);
+        if (scanAction is null)
+        {
+            return THPResult<object>.Failed("Thao tác quét không hợp lệ!");
         }
 
         if (!TryReadQrCode(args.QrCode, out var payload))
@@ -194,7 +204,7 @@ public class EventRepository(
         // For public events, auto-create UserEvent if not exists
         if (userEvent is null)
         {
-            if (eventItem.EventType == EventType.Public)
+            if (eventItem.EventType == EventType.Public && scanAction == ScanAction.CheckIn)
             {
                 userEvent = new UserEvent
                 {
@@ -210,13 +220,35 @@ public class EventRepository(
             }
         }
 
-        if (userEvent.CheckedInAt.HasValue)
+        var operatorUserName = _hcaService.GetUserName();
+        var now = DateTime.Now;
+
+        if (scanAction == ScanAction.CheckIn)
         {
-            return THPResult<object>.Failed($"Người tham gia đã check-in lúc {userEvent.CheckedInAt:HH:mm dd/MM/yyyy}.");
+            if (userEvent.CheckedInAt.HasValue)
+            {
+                return THPResult<object>.Failed($"Người tham gia đã check-in lúc {userEvent.CheckedInAt:HH:mm dd/MM/yyyy}.");
+            }
+
+            userEvent.CheckedInAt = now;
+            userEvent.CheckedInBy = operatorUserName;
+        }
+        else
+        {
+            if (!userEvent.CheckedInAt.HasValue)
+            {
+                return THPResult<object>.Failed("Người tham gia chưa check-in nên chưa thể checkout.");
+            }
+
+            if (userEvent.CheckedOutAt.HasValue)
+            {
+                return THPResult<object>.Failed($"Người tham gia đã checkout lúc {userEvent.CheckedOutAt:HH:mm dd/MM/yyyy}.");
+            }
+
+            userEvent.CheckedOutAt = now;
+            userEvent.CheckedOutBy = operatorUserName;
         }
 
-        userEvent.CheckedInAt = DateTime.Now;
-        userEvent.CheckedInBy = _hcaService.GetUserName();
         await _dbContext.SaveChangesAsync();
 
         var attendee = await (from user in _vnkContext.Users
@@ -240,8 +272,13 @@ public class EventRepository(
             attendee?.FullName,
             attendee?.ClassCode,
             attendee?.ClassName,
+            Action = scanAction == ScanAction.CheckIn ? "check-in" : "check-out",
             userEvent.CheckedInAt,
-            userEvent.CheckedInBy
+            userEvent.CheckedInBy,
+            userEvent.CheckedOutAt,
+            userEvent.CheckedOutBy,
+            IsCheckedIn = userEvent.CheckedInAt.HasValue,
+            IsCheckedOut = userEvent.CheckedOutAt.HasValue
         });
     }
 
@@ -287,7 +324,11 @@ public class EventRepository(
                             userEvent.UserId,
                             userEvent.CheckedInAt,
                             userEvent.CheckedInBy,
-                            IsCheckedIn = userEvent.CheckedInAt.HasValue
+                            userEvent.CheckedOutAt,
+                            userEvent.CheckedOutBy,
+                            IsCheckedIn = userEvent.CheckedInAt.HasValue,
+                            IsCheckedOut = userEvent.CheckedOutAt.HasValue,
+                            AttendanceStatus = userEvent.CheckedOutAt.HasValue ? "checked-out" : userEvent.CheckedInAt.HasValue ? "checked-in" : "not-checked-in"
                         };
 
             if (!string.IsNullOrWhiteSpace(filterOptions.UserName))
@@ -339,8 +380,12 @@ public class EventRepository(
                     x.Id,
                     x.UserId,
                     x.IsCheckedIn,
+                    x.IsCheckedOut,
+                    x.AttendanceStatus,
                     x.CheckedInBy,
                     x.CheckedInAt,
+                    x.CheckedOutBy,
+                    x.CheckedOutAt,
                     user.UserName,
                     user.Name,
                     user.Gender,
@@ -382,7 +427,10 @@ public class EventRepository(
                                          eventItem.EventType,
                                          CheckedInAt = userEvent.CheckedInAt,
                                          CheckedInBy = userEvent.CheckedInBy,
-                                         IsCheckedIn = userEvent.CheckedInAt.HasValue
+                                         CheckedOutAt = userEvent.CheckedOutAt,
+                                         CheckedOutBy = userEvent.CheckedOutBy,
+                                         IsCheckedIn = userEvent.CheckedInAt.HasValue,
+                                         IsCheckedOut = userEvent.CheckedOutAt.HasValue
                                      };
 
             // Get all public events
@@ -399,7 +447,10 @@ public class EventRepository(
                                    eventItem.EventType,
                                    CheckedInAt = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt).FirstOrDefault(),
                                    CheckedInBy = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInBy).FirstOrDefault(),
-                                   IsCheckedIn = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt.HasValue).FirstOrDefault()
+                                   CheckedOutAt = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedOutAt).FirstOrDefault(),
+                                   CheckedOutBy = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedOutBy).FirstOrDefault(),
+                                   IsCheckedIn = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt.HasValue).FirstOrDefault(),
+                                   IsCheckedOut = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedOutAt.HasValue).FirstOrDefault()
                                };
 
             // Combine and remove duplicates
@@ -600,5 +651,26 @@ public class EventRepository(
         return int.TryParse(userId, out userIdValue);
     }
 
+    private static ScanAction? NormalizeScanAction(string? action)
+    {
+        if (string.IsNullOrWhiteSpace(action) || string.Equals(action, "check-in", StringComparison.OrdinalIgnoreCase))
+        {
+            return ScanAction.CheckIn;
+        }
+
+        if (string.Equals(action, "check-out", StringComparison.OrdinalIgnoreCase))
+        {
+            return ScanAction.CheckOut;
+        }
+
+        return null;
+    }
+
     private sealed record EventQrPayload(Guid EventId, string UserId);
+
+    private enum ScanAction
+    {
+        CheckIn,
+        CheckOut
+    }
 }

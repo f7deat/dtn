@@ -31,7 +31,10 @@ namespace API {
         eventType?: 0 | 1; // 0 = Limited, 1 = Public
         checkedInAt?: string;
         checkedInBy?: string;
+        checkedOutAt?: string;
+        checkedOutBy?: string;
         isCheckedIn: boolean;
+        isCheckedOut?: boolean;
     }
 
     interface EventQrPayload {

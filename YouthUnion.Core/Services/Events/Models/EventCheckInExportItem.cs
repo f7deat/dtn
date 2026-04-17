@@ -10,4 +10,6 @@ public sealed record EventCheckInExportItem(
     string? ClassCode,
     string? DepartmentName,
     DateTime? CheckedInAt,
-    string? CheckedInBy);
+    string? CheckedInBy,
+    DateTime? CheckedOutAt,
+    string? CheckedOutBy);

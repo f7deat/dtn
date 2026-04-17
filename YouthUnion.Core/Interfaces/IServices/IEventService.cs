@@ -8,7 +8,7 @@ namespace YouthUnion.Core.Interfaces.IServices;
 public interface IEventService
 {
     Task<THPResult> AddUserAsync(EventUserAddArgs args);
-    Task<THPResult<object>> CheckInAsync(EventCheckInArgs args);
+    Task<THPResult<object>> ScanQrAsync(EventCheckInArgs args);
     Task<THPResult> CreateAsync(EventCreateArgs args);
     Task<THPResult> DeleteAsync(Guid id);
     Task<THPResult<object>> DetailAsync(Guid id);
