@@ -343,8 +343,8 @@ public class EventRepository(
                 query = query.Where(x => x.IsCheckedIn == filterOptions.IsCheckedIn.Value);
             }
 
-            query = query.OrderByDescending(x => x.CheckedInAt).ThenBy(x => x.CheckedInAt);
-            var data = await query.ToListAsync();
+            query = query.OrderByDescending(x => x.CheckedInAt).ThenByDescending(x => x.CheckedOutAt);
+            var data = await query.Skip((filterOptions.Current - 1) * filterOptions.PageSize).Take(filterOptions.PageSize).ToListAsync();
             var userIds = data.Select(x => x.UserId).ToList();
             var users = await _userContext.Users.Where(x => x.UserType == UserType.Student && userIds.Contains(x.Id))
                 .Select(x => new

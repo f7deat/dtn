@@ -332,14 +332,15 @@ const Index: React.FC = () => {
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreateEventModal}>
                     Tạo sự kiện
                 </Button>,
-                <Button key="scan" icon={<CameraOutlined />} disabled={!selectedEvent} onClick={() => setScannerOpen(true)}>
+                <Button hidden key="scan" icon={<CameraOutlined />} disabled={!selectedEvent} onClick={() => setScannerOpen(true)}>
                     Quét QR
                 </Button>,
             ]}
         >
-            <ProCard 
-            className="mb-4"
-            title="Danh sách sự kiện" extra={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}>
+            <ProCard
+                className="mb-4"
+                title="Danh sách sự kiện"
+                extra={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}>
                 <ProTable<EventItem>
                     actionRef={eventActionRef}
                     rowKey="id"
@@ -419,10 +420,10 @@ const Index: React.FC = () => {
                                 }}>
                                     Xuất Excel
                                 </Button>,
-                                <Popconfirm 
-                                    key="delete" 
-                                    title="Xóa sự kiện này?" 
-                                    description="Dữ liệu check-in cũng sẽ bị xóa." 
+                                <Popconfirm
+                                    key="delete"
+                                    title="Xóa sự kiện này?"
+                                    description="Dữ liệu check-in cũng sẽ bị xóa."
                                     onConfirm={async () => {
                                         await apiEventDelete(record.id);
                                         message.success("Đã xóa sự kiện");
@@ -497,100 +498,97 @@ const Index: React.FC = () => {
                     </ProCard>
                 </div>
 
-                <ProCard title="Người tham gia">
-                    <ProTable<EventUserItem>
-                        actionRef={userActionRef}
-                        rowKey="userId"
-                        search={{ layout: "vertical" }}
-                        params={{ eventId: selectedEvent?.id }}
-                        request={async (params) => {
-                            if (!selectedEvent) {
-                                return emptyTableResult;
-                            }
-                            return apiEventUserList({ ...params, eventId: selectedEvent.id });
-                        }}
-                        toolBarRender={() => [
-                            <Button key="add-user" icon={<PlusOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>
-                                Thêm người tham gia
-                            </Button>,
-                            <Button key="scan-inline" type="primary" icon={<CameraOutlined />} disabled={!selectedEvent} onClick={() => setScannerOpen(true)}>
-                                Quét QR
-                            </Button>,
-                        ]}
-                        ghost
-                        columns={[
-                            {
-                                title: "Mã SV",
-                                dataIndex: "userName",
+                <ProTable<EventUserItem>
+                    actionRef={userActionRef}
+                    rowKey="userId"
+                    size="small"
+                    search={{ layout: "vertical" }}
+                    params={{ eventId: selectedEvent?.id }}
+                    request={async (params) => {
+                        if (!selectedEvent) {
+                            return emptyTableResult;
+                        }
+                        return apiEventUserList({ ...params, eventId: selectedEvent.id });
+                    }}
+                    toolBarRender={() => [
+                        <Button key="add-user" icon={<PlusOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>
+                            Thêm người tham gia
+                        </Button>
+                    ]}
+                    columns={[
+                        {
+                            title: "Mã SV",
+                            dataIndex: "userName",
+                        },
+                        {
+                            title: "Họ và tên",
+                            dataIndex: "name",
+                            search: false,
+                            minWidth: 150
+                        },
+                        {
+                            title: "Lớp",
+                            dataIndex: "classCode",
+                            search: false,
+                            render: (text, record) => (
+                                <div>
+                                    <div>{record.classCode}</div>
+                                    <div className="text-gray-500 text-xs">{record.departmentName}</div>
+                                </div>
+                            )
+                        },
+                        {
+                            title: "Trạng thái",
+                            dataIndex: "attendanceStatus",
+                            valueEnum: {
+                                "not-checked-in": { text: "Chưa check-in", status: "Default" },
+                                "checked-in": { text: "Đã check-in", status: "Success" },
+                                "checked-out": { text: "Đã checkout", status: "Warning" },
                             },
-                            {
-                                title: "Họ và tên",
-                                dataIndex: "name",
-                                search: false
-                            },
-                            {
-                                title: "Lớp",
-                                dataIndex: "classCode",
-                                search: false
-                            },
-                            {
-                                title: "Khoa",
-                                dataIndex: "departmentName",
-                                search: false,
-                            },
-                            {
-                                title: "Trạng thái",
-                                dataIndex: "attendanceStatus",
-                                valueEnum: {
-                                    "not-checked-in": { text: "Chưa check-in", status: "Default" },
-                                    "checked-in": { text: "Đã check-in", status: "Success" },
-                                    "checked-out": { text: "Đã checkout", status: "Warning" },
-                                },
-                                width: 130,
-                            },
-                            {
-                                title: "Thời gian vào",
-                                dataIndex: "checkedInAt",
-                                valueType: "dateTime",
-                                search: false,
-                                width: 180,
-                            },
-                            {
-                                title: "Người xác nhận",
-                                dataIndex: "checkedInBy",
-                                search: false,
-                                width: 150,
-                            },
-                            {
-                                title: "Thời gian ra",
-                                dataIndex: "checkedOutAt",
-                                valueType: "dateTime",
-                                search: false,
-                                width: 180,
-                            },
-                            {
-                                title: "Người checkout",
-                                dataIndex: "checkedOutBy",
-                                search: false,
-                                width: 150,
-                            },
-                            {
-                                title: "Tác vụ",
-                                valueType: "option",
-                                render: (_, record) => [
-                                    <Button hidden key="qr" size="small" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(record)}>
-                                        QR
-                                    </Button>,
-                                    <Popconfirm key="remove" title="Xóa người này khỏi sự kiện?" onConfirm={() => void onRemoveUser(record)}>
-                                        <Button size="small" danger icon={<UserDeleteOutlined />}>
-                                            Xóa
-                                        </Button>
-                                    </Popconfirm>,
-                                ],
-                            },
-                        ]}
-                    />
-                </ProCard>
+                            width: 120,
+                        },
+                        {
+                            title: "Thời gian vào",
+                            dataIndex: "checkedInAt",
+                            valueType: "dateTime",
+                            search: false,
+                            width: 160,
+                        },
+                        {
+                            title: "Người checkin",
+                            dataIndex: "checkedInBy",
+                            search: false,
+                            hidden: true,
+                        },
+                        {
+                            title: "Thời gian ra",
+                            dataIndex: "checkedOutAt",
+                            valueType: "dateTime",
+                            search: false,
+                            width: 160,
+                        },
+                        {
+                            title: "Người checkout",
+                            dataIndex: "checkedOutBy",
+                            search: false,
+                            hidden: true,
+                        },
+                        {
+                            title: "Tác vụ",
+                            valueType: "option",
+                            render: (_, record) => [
+                                <Button hidden key="qr" size="small" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(record)}>
+                                    QR
+                                </Button>,
+                                <Popconfirm key="remove" title="Xóa người này khỏi sự kiện?" onConfirm={() => void onRemoveUser(record)}>
+                                    <Button size="small" danger icon={<UserDeleteOutlined />}>
+                                        Xóa
+                                    </Button>
+                                </Popconfirm>,
+                            ],
+                        },
+                    ]}
+                />
             </div>
 
             <ModalForm
@@ -688,7 +686,7 @@ const Index: React.FC = () => {
                 width={720}
             >
                 <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                    <Radio.Group
+                    {/* <Radio.Group
                         value={scanAction}
                         onChange={(event) => setScanAction(event.target.value as AttendanceAction)}
                         optionType="button"
@@ -697,13 +695,13 @@ const Index: React.FC = () => {
                             { label: "Check-in", value: "check-in" },
                             { label: "Checkout", value: "check-out" },
                         ]}
-                    />
+                    /> */}
 
                     {scannerError ? (
                         <Alert type="warning" showIcon message={scannerError} />
                     ) : (
-                        <div 
-                            id="qr-reader" 
+                        <div
+                            id="qr-reader"
                             style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
                         />
                     )}
