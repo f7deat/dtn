@@ -6,8 +6,8 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using THPCore.Interfaces;
 using THPCore.Services;
-using THPIdentity.Entities;
 using VnkCore.Data;
+using YouthUnion.Core.Entities;
 using YouthUnion.Core.ExternalAPI;
 using YouthUnion.Core.ExternalAPI.Interfaces;
 using YouthUnion.Core.Interfaces.IRepositories;
@@ -27,9 +27,9 @@ builder.Services.AddDbContext<VnkDbContext>(options => options.UseSqlServer(buil
 var identityConnection = builder.Configuration.GetConnectionString("IdentityConnection");
 builder.Services.AddDbContext<IdentityDbTHPContext>(options => options.UseSqlServer(identityConnection));
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
+builder.Services.AddIdentity<YouthUnionUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<IdentityDbTHPContext>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IArticleService, ArticleService>();

@@ -26,7 +26,7 @@ const Page: React.FC = () => {
             ]} />
             <div className="container mx-auto py-8 md:py-20 max-w-5xl">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4 md:px-0">
                     <div className="mb-4">
                         <div className="flex justify-center max-w-md">
                             <div className="text-center mb-4 max-w-md mx-auto">

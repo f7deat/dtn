@@ -5,14 +5,13 @@ import { faUser } from "@fortawesome/free-regular-svg-icons";
 import { faLock } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Form, Input, notification } from "antd"
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 const LoginForm: React.FC = () => {
 
     const [api, contextHolder] = notification.useNotification();
     const [submitting, setSubmitting] = useState(false);
-    const router = useRouter();
     const searchParams = useSearchParams();
 
     const onFinish = async (values: { username: string; password: string; }) => {
@@ -30,8 +29,7 @@ const LoginForm: React.FC = () => {
                 message: "Đăng nhập thành công"
             });
             const redirectUrl = searchParams.get("redirect") || "/profile";
-            router.push(redirectUrl);
-            router.refresh();
+            window.location.href = redirectUrl;
         } finally {
             setSubmitting(false);
         }

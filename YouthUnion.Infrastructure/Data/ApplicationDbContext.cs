@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using THPIdentity.Entities;
 using YouthUnion.Core.Entities;
 using YouthUnion.Entities;
 
 namespace YouthUnion.Infrastructure.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<YouthUnionUser>(options)
 {
     public virtual DbSet<Category> Categories { get; set; }
     public virtual DbSet<Article> Articles { get; set; }

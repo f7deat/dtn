@@ -1,7 +1,7 @@
 "use client";
 
 import { apiMyEventQr } from "@/app/services/event";
-import { CalendarOutlined, CheckCircleOutlined, QrcodeOutlined, UserOutlined } from "@ant-design/icons";
+import { CalendarOutlined, CheckCircleOutlined, PrinterOutlined, QrcodeOutlined, UserOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Col, Descriptions, Empty, Modal, QRCode, Row, Space, Tag, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useState } from "react";
@@ -46,12 +46,13 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
                 <Typography.Text type="secondary">Hồ sơ cá nhân</Typography.Text>
                 <Typography.Title level={3} style={{ marginTop: 8, marginBottom: 0 }}>{displayName}</Typography.Title>
               </div>
-              <Descriptions size="small" column={1} bordered>
+              <Descriptions size="small" column={1} bordered className="mb-2">
                 <Descriptions.Item label="Mã sinh viên">{currentUser.userName ?? "-"}</Descriptions.Item>
                 <Descriptions.Item label="Email">{currentUser.email ?? "-"}</Descriptions.Item>
                 <Descriptions.Item label="Số điện thoại">{currentUser.phoneNumber ?? "-"}</Descriptions.Item>
                 <Descriptions.Item label="Lớp">{currentUser.className ?? currentUser.classCode ?? "-"}</Descriptions.Item>
               </Descriptions>
+              <Button type="primary" icon={<PrinterOutlined />} block>In giấy xác nhận</Button>
             </Space>
           </Card>
         </Col>
