@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
-using System.IO;
 using THPCore.Models;
 using YouthUnion.Core.Interfaces.IServices;
 using YouthUnion.Core.Services.Events.Args;
@@ -91,7 +90,7 @@ public class EventController(IEventService _eventService) : BaseController
             worksheet.Cells[row, 1].Value = row - 1;
             worksheet.Cells[row, 2].Value = item.UserName;
             worksheet.Cells[row, 3].Value = item.Name;
-            worksheet.Cells[row, 4].Value = item.ClassCode;
+            //worksheet.Cells[row, 4].Value = item.ClassCode;
             worksheet.Cells[row, 5].Value = item.DepartmentName;
             worksheet.Cells[row, 6].Value = item.Gender.HasValue ? (item.Gender.Value ? "Nữ" : "Nam") : null;
             worksheet.Cells[row, 7].Value = item.DateOfBirth?.ToString("dd/MM/yyyy");

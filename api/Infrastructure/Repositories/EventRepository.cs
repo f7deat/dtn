@@ -21,19 +21,15 @@ namespace YouthUnion.Infrastructure.Repositories;
 
 public class EventRepository(
     ApplicationDbContext context,
-    VnkDbContext vnkContext,
     IConfiguration configuration,
-    IdentityDbTHPContext userContext,
     UserManager<ApplicationUser> userManager,
     IHCAService hcaService,
     IHttpContextAccessor httpContextAccessor) : EfRepository<Event>(context), IEventRepository
 {
     private readonly ApplicationDbContext _dbContext = context;
-    private readonly VnkDbContext _vnkContext = vnkContext;
     private readonly IConfiguration _configuration = configuration;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly IdentityDbTHPContext _userContext = userContext;
     private readonly IHCAService _hcaService = hcaService;
 
     public async Task<THPResult> AddUserAsync(EventUserAddArgs args)
@@ -41,22 +37,20 @@ public class EventRepository(
         var eventExists = await _dbContext.Events.AnyAsync(x => x.Id == args.EventId);
         if (!eventExists) return THPResult.Failed("Không tìm thấy sự kiện!");
 
-        var user = await _userContext.Users.FirstOrDefaultAsync(x => x.UserName == args.UserName);
+        var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == args.UserName);
         if (user is null)
         {
-            var hpuniUser = await (from u in _vnkContext.Users
-                                   join ud in _vnkContext.UserDetails on u.Id equals ud.UserId
+            var hpuniUser = await (from u in _dbContext.Users
                                    where u.UserName == args.UserName
                                    select new
                                    {
                                        u.Id,
                                        u.UserName,
                                        u.DepartmentId,
-                                       u.LastName,
-                                       u.FirstName,
+                                       u.Name,
                                        u.Email,
-                                       ud.Gender,
-                                       ud.DateOfBirth,
+                                       u.Gender,
+                                       u.DateOfBirth,
                                        u.PhoneNumber
                                    }).FirstOrDefaultAsync();
             if (hpuniUser is null) return THPResult.Failed("Không tìm thấy người dùng!");
@@ -67,9 +61,9 @@ public class EventRepository(
                 Status = UserStatus.Active,
                 UserType = UserType.Student,
                 DepartmentId = hpuniUser.DepartmentId,
-                Name = hpuniUser.LastName + " " + hpuniUser.FirstName,
+                Name = hpuniUser.Name,
                 PhoneNumber = hpuniUser.PhoneNumber,
-                Gender = hpuniUser.Gender == 1,
+                Gender = hpuniUser.Gender,
                 Email = hpuniUser.Email,
                 DateOfBirth = hpuniUser.DateOfBirth
             };
@@ -112,7 +106,7 @@ public class EventRepository(
             .ToListAsync();
 
         var userIds = checkIns.Select(x => x.UserId).ToList();
-        var users = await _userContext.Users
+        var users = await _userManager.Users
             .Where(x => userIds.Contains(x.Id))
             .Select(x => new
             {
@@ -126,15 +120,12 @@ public class EventRepository(
             .ToListAsync();
 
         var userNames = users.Select(u => u.UserName).ToList();
-        var userClass = from u in _vnkContext.Users
-                        join d in _vnkContext.Departments on u.DepartmentId equals d.Id
-                        join uc in _vnkContext.ClassUsers on u.Id equals uc.UserId
-                        join c in _vnkContext.Classes on uc.ClassId equals c.Id
+        var userClass = from u in _dbContext.Users
+                        join d in _dbContext.Departments on u.DepartmentId equals d.Id
                         where u.UserType == UserType.Student && userNames.Contains(u.UserName)
                         select new
                         {
                             u.UserName,
-                            u.ClassCode,
                             DepartmentName = d.Name
                         };
 
@@ -149,7 +140,6 @@ public class EventRepository(
                 user?.Gender,
                 user?.PhoneNumber,
                 user?.DateOfBirth,
-                classInfo?.ClassCode,
                 classInfo?.DepartmentName,
                 x.CheckedInAt,
                 x.CheckedInBy,
@@ -251,17 +241,13 @@ public class EventRepository(
 
         await _dbContext.SaveChangesAsync();
 
-        var attendee = await (from user in _vnkContext.Users
-                              join detail in _vnkContext.UserDetails on user.Id equals detail.UserId into userDetails
-                              from detail in userDetails.DefaultIfEmpty()
+        var attendee = await (from user in _dbContext.Users
                               where user.UserName == student.UserName
                               select new
                               {
                                   user.Id,
                                   user.UserName,
-                                  FullName = user.FirstName + " " + user.LastName,
-                                  user.ClassCode,
-                                  user.ClassName
+                                  FullName = user.Name,
                               }).FirstOrDefaultAsync();
 
         return THPResult<object>.Ok(new
@@ -270,8 +256,6 @@ public class EventRepository(
             payload.UserId,
             attendee?.UserName,
             attendee?.FullName,
-            attendee?.ClassCode,
-            attendee?.ClassName,
             Action = scanAction == ScanAction.CheckIn ? "check-in" : "check-out",
             userEvent.CheckedInAt,
             userEvent.CheckedInBy,
@@ -333,7 +317,7 @@ public class EventRepository(
 
             if (!string.IsNullOrWhiteSpace(filterOptions.UserName))
             {
-                var user = await _userContext.Users.FirstOrDefaultAsync(x => x.UserName == filterOptions.UserName);
+                var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == filterOptions.UserName);
                 if (user is null) return new ListResult<object>([], 0, filterOptions);
                 query = query.Where(x => x.UserId == user.Id);
             }
@@ -346,7 +330,7 @@ public class EventRepository(
             query = query.OrderByDescending(x => x.CheckedInAt).ThenByDescending(x => x.CheckedOutAt);
             var data = await query.Skip((filterOptions.Current - 1) * filterOptions.PageSize).Take(filterOptions.PageSize).ToListAsync();
             var userIds = data.Select(x => x.UserId).ToList();
-            var users = await _userContext.Users.Where(x => x.UserType == UserType.Student && userIds.Contains(x.Id))
+            var users = await _userManager.Users.Where(x => x.UserType == UserType.Student && userIds.Contains(x.Id))
                 .Select(x => new
                 {
                     x.Id,
@@ -359,15 +343,12 @@ public class EventRepository(
                 .ToListAsync();
             var userNames = users.Select(u => u.UserName).ToList();
 
-            var userClass = from u in _vnkContext.Users
-                            join d in _vnkContext.Departments on u.DepartmentId equals d.Id
-                            join uc in _vnkContext.ClassUsers on u.Id equals uc.UserId
-                            join c in _vnkContext.Classes on uc.ClassId equals c.Id
+            var userClass = from u in _dbContext.Users
+                            join d in _dbContext.Departments on u.DepartmentId equals d.Id
                             where u.UserType == UserType.Student && userNames.Contains(u.UserName)
                             select new
                             {
                                 u.UserName,
-                                u.ClassCode,
                                 DepartmentName = d.Name
                             };
 
@@ -391,7 +372,6 @@ public class EventRepository(
                     user.Gender,
                     user.PhoneNumber,
                     user.DateOfBirth,
-                    classInfo?.ClassCode,
                     classInfo?.DepartmentName
                 };
             }), await query.CountAsync(), filterOptions);
@@ -491,7 +471,7 @@ public class EventRepository(
             }
         }
 
-        var attendee = await (from user in _userContext.Users
+        var attendee = await (from user in _userManager.Users
                               where user.Id == currentUserId
                               select new
                               {

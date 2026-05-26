@@ -22,13 +22,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddDbContext<VnkDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("VnkConnection")));
+//builder.Services.AddDbContext<VnkDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("VnkConnection")));
 
-var identityConnection = builder.Configuration.GetConnectionString("IdentityConnection");
-builder.Services.AddDbContext<IdentityDbTHPContext>(options => options.UseSqlServer(identityConnection));
+//var identityConnection = builder.Configuration.GetConnectionString("IdentityConnection");
+//builder.Services.AddDbContext<IdentityDbTHPContext>(options => options.UseSqlServer(identityConnection));
 
-builder.Services.AddIdentity<YouthUnionUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
-    .AddRoles<IdentityRole>()
+builder.Services.AddIdentity<YouthUnionUser, YouthUnionRole>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 

@@ -7,7 +7,6 @@ public sealed record EventCheckInExportItem(
     bool? Gender,
     string? PhoneNumber,
     DateTime? DateOfBirth,
-    string? ClassCode,
     string? DepartmentName,
     DateTime? CheckedInAt,
     string? CheckedInBy,

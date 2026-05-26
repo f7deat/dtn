@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using THPCore.Infrastructures;
 using YouthUnion.Entities;
 
@@ -16,7 +17,10 @@ public class Event : BaseEntity
     [StringLength(2048)]
     public string? Thumbnail { get; set; }
     public EventType EventType { get; set; } = EventType.Limited;
+    [ForeignKey(nameof(AcademicYear))]
+    public int? AcademicYearId { get; set; }
 
+    public virtual AcademicYear? AcademicYear { get; set; }
     public virtual ICollection<EventRegistration>? EventRegistrations { get; set; }
     public virtual ICollection<UserEvent>? UserEvents { get; set; }
 }
