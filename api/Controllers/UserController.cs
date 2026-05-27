@@ -10,12 +10,13 @@ using THPCore.Interfaces;
 using THPCore.Models;
 using THPIdentity.Entities;
 using YouthUnion.API.Models.Students;
+using YouthUnion.Core.Entities;
 using YouthUnion.Core.ExternalAPI.Interfaces;
 using YouthUnion.Foundation;
 
 namespace YouthUnion.API.Controllers;
 
-public class UserController(IIdentityAPI _identityAPI, UserManager<ApplicationUser> _userManager, IConfiguration _configuration, IHCAService _hcaService) : BaseController
+public class UserController(IIdentityAPI _identityAPI, UserManager<YouthUnionUser> _userManager, IConfiguration _configuration, IHCAService _hcaService) : BaseController
 {
     [HttpPost("login"), AllowAnonymous]
     public async Task<IActionResult> LoginAsync([FromBody] LoginArgs args)
@@ -27,7 +28,7 @@ public class UserController(IIdentityAPI _identityAPI, UserManager<ApplicationUs
         if (user is null)
         {
             if (api.Data is null) return Ok(THPResult.Failed("Không tìm thấy dữ liệu đồng bộ!"));
-            user = new ApplicationUser
+            user = new YouthUnionUser
             {
                 Id = api.Data.Id,
                 UserName = args.UserName,

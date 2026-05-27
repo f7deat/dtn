@@ -5,5 +5,6 @@ namespace YouthUnion.Interfaces.IServices;
 
 public interface IStudentService
 {
+    Task<THPResult> GetProfileAsync();
     Task<ListResult<object>> ListAsync(StudentFilterOptions filterOptions);
 }

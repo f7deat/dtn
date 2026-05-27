@@ -1,5 +1,4 @@
-﻿using System.Net.Http.Json;
-using THPCore.Models;
+﻿using THPCore.Models;
 using YouthUnion.Core.ExternalAPI.Interfaces;
 using YouthUnion.Core.ExternalAPI.Models;
 

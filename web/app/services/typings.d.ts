@@ -19,6 +19,15 @@ namespace API {
         userType?: number;
         className?: string;
         classCode?: string;
+        facultyName?: string;
+        departmentName?: string;
+    }
+
+    interface AcademicYearOption {
+        value: number;
+        label: string;
+        startDate?: string;
+        endDate?: string;
     }
 
     interface MyEventItem {

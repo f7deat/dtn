@@ -13,6 +13,7 @@ using YouthUnion.Core.ExternalAPI.Interfaces;
 using YouthUnion.Core.Interfaces.IRepositories;
 using YouthUnion.Core.Interfaces.IServices;
 using YouthUnion.Core.Services.Events;
+using YouthUnion.ExternalAPI;
 using YouthUnion.Infrastructure.Data;
 using YouthUnion.Infrastructure.Repositories;
 using YouthUnion.Interfaces.IServices;
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<IHCAService, HCAService>();
 builder.Services.AddHttpClient<IIdentityAPI, IdentityAPI>();
+builder.Services.AddHttpClient<IHemsService, HemsService>();
 
 builder.Services.AddCors(); 
 

@@ -1,14 +1,38 @@
-﻿using THPCore.Models;
+﻿using THPCore.Interfaces;
+using THPCore.Models;
 using THPIdentity.Entities;
 using VnkCore.Data;
+using YouthUnion.ExternalAPI;
 using YouthUnion.Infrastructure.Data;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Models.Students;
 
 namespace YouthUnion.Services;
 
-public class StudentService(ApplicationDbContext _vnkContext) : IStudentService
+public class StudentService(ApplicationDbContext _vnkContext, IHCAService _hcaService, IHemsService _hemsService) : IStudentService
 {
+    public async Task<THPResult> GetProfileAsync()
+    {
+        var userId = _hcaService.GetUserId();
+        var user = await _vnkContext.Users.FindAsync(userId);
+        if (user is null) return THPResult.Failed("Không tìm thấy sinh viên!");
+        var response = await _hemsService.ListByUserNamesAsync([user.UserName]);
+        if (response.Data is null) return THPResult.Failed("Không tìm thấy sinh viên!");
+        var hpuniUser = response.Data.FirstOrDefault();
+        return THPResult.Ok(new
+        {
+            UserId = userId,
+            user.Name,
+            user.Gender,
+            user.DepartmentId,
+            user.Email,
+            user.PhoneNumber,
+            user.DateOfBirth,
+            hpuniUser?.ClassCode,
+            hpuniUser?.DepartmentName
+        });
+    }
+
     public async Task<ListResult<object>> ListAsync(StudentFilterOptions filterOptions)
     {
         var query = from a in _vnkContext.Users

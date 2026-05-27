@@ -22,13 +22,13 @@ namespace YouthUnion.Infrastructure.Repositories;
 public class EventRepository(
     ApplicationDbContext context,
     IConfiguration configuration,
-    UserManager<ApplicationUser> userManager,
+    UserManager<YouthUnionUser> userManager,
     IHCAService hcaService,
     IHttpContextAccessor httpContextAccessor) : EfRepository<Event>(context), IEventRepository
 {
     private readonly ApplicationDbContext _dbContext = context;
     private readonly IConfiguration _configuration = configuration;
-    private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly UserManager<YouthUnionUser> _userManager = userManager;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly IHCAService _hcaService = hcaService;
 
@@ -54,7 +54,7 @@ public class EventRepository(
                                        u.PhoneNumber
                                    }).FirstOrDefaultAsync();
             if (hpuniUser is null) return THPResult.Failed("Không tìm thấy người dùng!");
-            user = new ApplicationUser
+            user = new YouthUnionUser
             {
                 Id = Guid.NewGuid().ToString(),
                 UserName = args.UserName,
@@ -90,62 +90,28 @@ public class EventRepository(
             return THPResult<EventCheckInExportData>.Failed("Không tìm thấy sự kiện!");
         }
 
-        var checkIns = await _dbContext.UserEvents
-            .AsNoTracking()
-            .Where(x => x.EventId == eventId)
-            .OrderByDescending(x => x.CheckedInAt)
-            .ThenBy(x => x.CheckedInAt)
-            .Select(x => new
-            {
-                x.UserId,
-                x.CheckedInAt,
-                x.CheckedInBy,
-                x.CheckedOutAt,
-                x.CheckedOutBy
-            })
-            .ToListAsync();
+        var query = from ue in _dbContext.UserEvents.AsNoTracking()
+                    join u in _dbContext.Users.AsNoTracking() on ue.UserId equals u.Id into userGroup
+                    from user in userGroup.DefaultIfEmpty()
+                    join d in _dbContext.Departments on user.DepartmentId equals d.Id into deptGroup
+                    from dept in deptGroup.DefaultIfEmpty()
+                    where ue.EventId == eventId
+                    orderby ue.CheckedInAt descending, ue.CheckedInAt ascending
+                    select new EventCheckInExportItem(
+                        ue.UserId,
+                        user.UserName,
+                        user.Name,
+                        user.Gender,
+                        user.PhoneNumber,
+                        user.DateOfBirth,
+                        dept.Name,
+                        ue.CheckedInAt,
+                        ue.CheckedInBy,
+                        ue.CheckedOutAt,
+                        ue.CheckedOutBy
+                        );
 
-        var userIds = checkIns.Select(x => x.UserId).ToList();
-        var users = await _userManager.Users
-            .Where(x => userIds.Contains(x.Id))
-            .Select(x => new
-            {
-                x.Id,
-                x.Name,
-                x.UserName,
-                x.Gender,
-                x.PhoneNumber,
-                x.DateOfBirth
-            })
-            .ToListAsync();
-
-        var userNames = users.Select(u => u.UserName).ToList();
-        var userClass = from u in _dbContext.Users
-                        join d in _dbContext.Departments on u.DepartmentId equals d.Id
-                        where u.UserType == UserType.Student && userNames.Contains(u.UserName)
-                        select new
-                        {
-                            u.UserName,
-                            DepartmentName = d.Name
-                        };
-
-        var items = checkIns.Select(x =>
-        {
-            var user = users.FirstOrDefault(u => u.Id == x.UserId);
-            var classInfo = user is null ? null : userClass.FirstOrDefault(c => c.UserName == user.UserName);
-            return new EventCheckInExportItem(
-                x.UserId,
-                user?.UserName,
-                user?.Name,
-                user?.Gender,
-                user?.PhoneNumber,
-                user?.DateOfBirth,
-                classInfo?.DepartmentName,
-                x.CheckedInAt,
-                x.CheckedInBy,
-                x.CheckedOutAt,
-                x.CheckedOutBy);
-        }).ToList();
+        var items = await query.ToListAsync();
 
         return THPResult<EventCheckInExportData>.Ok(new EventCheckInExportData(
             eventItem.Title,
@@ -301,6 +267,9 @@ public class EventRepository(
         try
         {
             var query = from userEvent in _context.UserEvents.AsNoTracking()
+                        join user in _context.Users on userEvent.UserId equals user.Id
+                        join dept in _context.Departments on user.DepartmentId equals dept.Id into deptGroup
+                        from department in deptGroup.DefaultIfEmpty()
                         where userEvent.EventId == filterOptions.EventId.Value
                         select new
                         {
@@ -312,69 +281,31 @@ public class EventRepository(
                             userEvent.CheckedOutBy,
                             IsCheckedIn = userEvent.CheckedInAt.HasValue,
                             IsCheckedOut = userEvent.CheckedOutAt.HasValue,
-                            AttendanceStatus = userEvent.CheckedOutAt.HasValue ? "checked-out" : userEvent.CheckedInAt.HasValue ? "checked-in" : "not-checked-in"
+                            AttendanceStatus = userEvent.CheckedOutAt.HasValue ? "checked-out" : userEvent.CheckedInAt.HasValue ? "checked-in" : "not-checked-in",
+                            user.Name,
+                            user.DepartmentId,
+                            user.DateOfBirth,
+                            user.Gender,
+                            user.Avatar,
+                            user.UserName,
+                            user.Email,
+                            user.PhoneNumber,
+                            DepartmentName = department != null ? department.Name : null
                         };
 
             if (!string.IsNullOrWhiteSpace(filterOptions.UserName))
             {
-                var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == filterOptions.UserName);
-                if (user is null) return new ListResult<object>([], 0, filterOptions);
-                query = query.Where(x => x.UserId == user.Id);
+                query = query.Where(x => x.UserName == filterOptions.UserName);
             }
 
-            if (filterOptions.IsCheckedIn.HasValue)
+            if (!string.IsNullOrWhiteSpace(filterOptions.AttendanceStatus))
             {
-                query = query.Where(x => x.IsCheckedIn == filterOptions.IsCheckedIn.Value);
+                query = query.Where(x => x.AttendanceStatus == filterOptions.AttendanceStatus);
             }
 
             query = query.OrderByDescending(x => x.CheckedInAt).ThenByDescending(x => x.CheckedOutAt);
-            var data = await query.Skip((filterOptions.Current - 1) * filterOptions.PageSize).Take(filterOptions.PageSize).ToListAsync();
-            var userIds = data.Select(x => x.UserId).ToList();
-            var users = await _userManager.Users.Where(x => x.UserType == UserType.Student && userIds.Contains(x.Id))
-                .Select(x => new
-                {
-                    x.Id,
-                    x.Name,
-                    x.UserName,
-                    x.Gender,
-                    x.PhoneNumber,
-                    x.DateOfBirth
-                })
-                .ToListAsync();
-            var userNames = users.Select(u => u.UserName).ToList();
 
-            var userClass = from u in _dbContext.Users
-                            join d in _dbContext.Departments on u.DepartmentId equals d.Id
-                            where u.UserType == UserType.Student && userNames.Contains(u.UserName)
-                            select new
-                            {
-                                u.UserName,
-                                DepartmentName = d.Name
-                            };
-
-            return new ListResult<object>(data.Select(x =>
-            {
-                var user = users.First(u => u.Id == x.UserId);
-                var classInfo = userClass.FirstOrDefault(c => c.UserName == user.UserName);
-                return new
-                {
-                    x.Id,
-                    x.UserId,
-                    x.IsCheckedIn,
-                    x.IsCheckedOut,
-                    x.AttendanceStatus,
-                    x.CheckedInBy,
-                    x.CheckedInAt,
-                    x.CheckedOutBy,
-                    x.CheckedOutAt,
-                    user.UserName,
-                    user.Name,
-                    user.Gender,
-                    user.PhoneNumber,
-                    user.DateOfBirth,
-                    classInfo?.DepartmentName
-                };
-            }), await query.CountAsync(), filterOptions);
+            return await ListResult<object>.Success(query, filterOptions);
         }
         catch (Exception ex)
         {
@@ -511,7 +442,9 @@ public class EventRepository(
                 x.Thumbnail,
                 x.EventType,
                 RegistrationCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id),
-                CheckedInCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id && u.CheckedInAt != null)
+                CheckedInCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id && u.CheckedInAt != null),
+                CheckedOutCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id && u.CheckedOutAt != null),
+                x.AcademicYearId
             });
 
             if (!string.IsNullOrWhiteSpace(filterOptions.Title))
@@ -590,16 +523,6 @@ public class EventRepository(
         }
     }
 
-    private string GetCurrentUserName()
-    {
-        var user = _httpContextAccessor.HttpContext?.User;
-        return user?.Identity?.Name
-            ?? user?.FindFirstValue(ClaimTypes.Name)
-            ?? user?.FindFirstValue("preferred_username")
-            ?? user?.FindFirstValue("unique_name")
-            ?? "system";
-    }
-
     private string? GetCurrentUserId()
     {
         var user = _httpContextAccessor.HttpContext?.User;
@@ -624,11 +547,6 @@ public class EventRepository(
         }
 
         return Convert.FromBase64String(padded);
-    }
-
-    private static bool TryParseUserId(string userId, out int userIdValue)
-    {
-        return int.TryParse(userId, out userIdValue);
     }
 
     private static ScanAction? NormalizeScanAction(string? action)

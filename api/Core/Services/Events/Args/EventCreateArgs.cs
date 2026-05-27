@@ -11,4 +11,5 @@ public class EventCreateArgs
     public string? Content { get; set; }
     public string? Thumbnail { get; set; }
     public EventType EventType { get; set; } = EventType.Limited;
+    public int? AcademicYearId { get; set; }
 }

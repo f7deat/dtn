@@ -4,11 +4,12 @@ using THPCore.Models;
 using YouthUnion.Core.Interfaces.IServices;
 using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
+using YouthUnion.ExternalAPI;
 using YouthUnion.Foundation;
 
-namespace YouthUnion.API.Controllers;
+namespace YouthUnion.Controllers;
 
-public class EventController(IEventService _eventService) : BaseController
+public class EventController(IEventService _eventService, IHemsService _hemsService) : BaseController
 {
     [HttpGet("list")]
     public async Task<IActionResult> ListAsync([FromQuery] EventFilterOptions filterOptions) => Ok(await _eventService.ListAsync(filterOptions));
@@ -71,6 +72,7 @@ public class EventController(IEventService _eventService) : BaseController
             "Giới tính",
             "Ngày sinh",
             "SĐT",
+            "Niên khóa",
             "Check-in lúc",
             "Check-in bởi",
             "Checkout lúc",
@@ -83,22 +85,28 @@ public class EventController(IEventService _eventService) : BaseController
         }
 
         worksheet.Row(1).Style.Font.Bold = true;
+        var userNames = result.Data.Items.Select(i => i.UserName).Distinct().ToList();
+        var response = await _hemsService.ListByUserNamesAsync(userNames);
+        if (response.Data is null) return BadRequest("Failed to get data from HEMS API.");
 
         var row = 2;
         foreach (var item in result.Data.Items)
         {
+            var studentInfo = response.Data.FirstOrDefault(r => r.UserName == item.UserName);
+
             worksheet.Cells[row, 1].Value = row - 1;
             worksheet.Cells[row, 2].Value = item.UserName;
             worksheet.Cells[row, 3].Value = item.Name;
-            //worksheet.Cells[row, 4].Value = item.ClassCode;
+            worksheet.Cells[row, 4].Value = studentInfo?.ClassCode;
             worksheet.Cells[row, 5].Value = item.DepartmentName;
             worksheet.Cells[row, 6].Value = item.Gender.HasValue ? (item.Gender.Value ? "Nữ" : "Nam") : null;
             worksheet.Cells[row, 7].Value = item.DateOfBirth?.ToString("dd/MM/yyyy");
             worksheet.Cells[row, 8].Value = item.PhoneNumber;
-            worksheet.Cells[row, 9].Value = item.CheckedInAt?.ToString("dd/MM/yyyy HH:mm");
-            worksheet.Cells[row, 10].Value = item.CheckedInBy;
-            worksheet.Cells[row, 11].Value = item.CheckedOutAt?.ToString("dd/MM/yyyy HH:mm");
-            worksheet.Cells[row, 12].Value = item.CheckedOutBy;
+            worksheet.Cells[row, 9].Value = studentInfo?.CourseName;
+            worksheet.Cells[row, 10].Value = item.CheckedInAt?.ToString("dd/MM/yyyy HH:mm");
+            worksheet.Cells[row, 11].Value = item.CheckedInBy;
+            worksheet.Cells[row, 12].Value = item.CheckedOutAt?.ToString("dd/MM/yyyy HH:mm");
+            worksheet.Cells[row, 13].Value = item.CheckedOutBy;
             row++;
         }
 

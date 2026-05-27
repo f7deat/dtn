@@ -10,10 +10,7 @@ namespace YouthUnion.Core.Services.Events;
 
 public class EventService(IEventRepository _eventRepository) : IEventService
 {
-    public Task<THPResult> AddUserAsync(EventUserAddArgs args)
-    {
-        return _eventRepository.AddUserAsync(args);
-    }
+    public Task<THPResult> AddUserAsync(EventUserAddArgs args) => _eventRepository.AddUserAsync(args);
 
     public Task<THPResult<object>> ScanQrAsync(EventCheckInArgs args) => _eventRepository.ScanQrAsync(args);
 
@@ -27,7 +24,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             EndDate = args.EndDate,
             StartDate = args.StartDate,
             Thumbnail = args.Thumbnail,
-            EventType = args.EventType
+            EventType = args.EventType,
+            AcademicYearId = args.AcademicYearId
         });
         return THPResult.Success;
     }
@@ -53,7 +51,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             data.StartDate,
             data.EndDate,
             data.Thumbnail,
-            data.EventType
+            data.EventType,
+            data.AcademicYearId
         });
     }
 
@@ -82,6 +81,7 @@ public class EventService(IEventRepository _eventRepository) : IEventService
         data.EndDate = args.EndDate;
         data.Thumbnail = args.Thumbnail;
         data.EventType = args.EventType;
+        data.AcademicYearId = args.AcademicYearId;
         await _eventRepository.UpdateAsync(data);
         return THPResult.Success;
     }

@@ -8,5 +8,5 @@ public class EUFilterOptions : FilterOptions
     public string? UserName { get; set; }
     public string? FullName { get; set; }
     public string? ClassCode { get; set; }
-    public bool? IsCheckedIn { get; set; }
+    public string? AttendanceStatus { get; set; }
 }

@@ -9,6 +9,7 @@ using THPCore.Constants;
 using THPCore.Models;
 using THPIdentity.Entities;
 using YouthUnion.API.Models.Students;
+using YouthUnion.Core.Entities;
 using YouthUnion.Core.ExternalAPI.Interfaces;
 using YouthUnion.Foundation;
 using YouthUnion.Interfaces.IServices;
@@ -16,7 +17,7 @@ using YouthUnion.Models.Students;
 
 namespace YouthUnion.Controllers;
 
-public class StudentController(IStudentService _studentService, IIdentityAPI _identityAPI, UserManager<ApplicationUser> _userManager, IConfiguration _configuration) : BaseController
+public class StudentController(IStudentService _studentService, IIdentityAPI _identityAPI, UserManager<YouthUnionUser> _userManager, IConfiguration _configuration) : BaseController
 {
     [HttpGet("list")]
     public async Task<IActionResult> ListAsync([FromQuery] StudentFilterOptions filterOptions) => Ok(await _studentService.ListAsync(filterOptions));
@@ -33,7 +34,7 @@ public class StudentController(IStudentService _studentService, IIdentityAPI _id
             if (user is null)
             {
                 if (api.Data is null) return Ok(THPResult.Failed("Không tìm thấy dữ liệu đồng bộ!"));
-                user = new ApplicationUser
+                user = new YouthUnionUser
                 {
                     Id = api.Data.Id,
                     UserName = args.UserName,
@@ -88,4 +89,7 @@ public class StudentController(IStudentService _studentService, IIdentityAPI _id
             return BadRequest(ex.ToString());
         }
     }
+
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfileAsync() => Ok(await _studentService.GetProfileAsync());
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { apiMyEventQr } from "@/app/services/event";
+import { apiAcademicYearOptions } from "@/app/services/academicYear";
 import { CalendarOutlined, CheckCircleOutlined, PrinterOutlined, QrcodeOutlined, UserOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Col, Descriptions, Empty, Modal, QRCode, Row, Space, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Col, Descriptions, Empty, Modal, QRCode, Row, Select, Space, Tag, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useState } from "react";
 
@@ -15,6 +16,10 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
   const [qrOpen, setQrOpen] = useState(false);
   const [loadingQr, setLoadingQr] = useState(false);
   const [selectedQr, setSelectedQr] = useState<API.EventQrPayload | null>(null);
+  const [certificateModalOpen, setCertificateModalOpen] = useState(false);
+  const [academicYearOptions, setAcademicYearOptions] = useState<API.AcademicYearOption[]>([]);
+  const [academicYearLoading, setAcademicYearLoading] = useState(false);
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState<number | null>(null);
 
   const displayName = currentUser.fullName ?? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") ?? currentUser.userName ?? "Sinh viên";
 
@@ -36,6 +41,41 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
     }
   };
 
+  const onOpenCertificateModal = async () => {
+    setCertificateModalOpen(true);
+    if (academicYearOptions.length > 0) {
+      return;
+    }
+
+    setAcademicYearLoading(true);
+    try {
+      const response = await apiAcademicYearOptions();
+      setAcademicYearOptions(response);
+      if (response.length > 0) {
+        setSelectedAcademicYearId(response[0].value);
+      }
+    } finally {
+      setAcademicYearLoading(false);
+    }
+  };
+
+  const onPrintCertificate = () => {
+    if (!selectedAcademicYearId) {
+      message.warning("Vui lòng chọn năm học.");
+      return;
+    }
+
+    const selectedAcademicYear = academicYearOptions.find((item) => item.value === selectedAcademicYearId);
+    const params = new URLSearchParams();
+    params.set("academicYearId", String(selectedAcademicYearId));
+    if (selectedAcademicYear?.label) {
+      params.set("academicYearLabel", selectedAcademicYear.label);
+    }
+
+    window.open(`/profile/certificate?${params.toString()}`, "_blank", "noopener,noreferrer");
+    setCertificateModalOpen(false);
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <Row gutter={[24, 24]}>
@@ -52,7 +92,9 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
                 <Descriptions.Item label="Số điện thoại">{currentUser.phoneNumber ?? "-"}</Descriptions.Item>
                 <Descriptions.Item label="Lớp">{currentUser.className ?? currentUser.classCode ?? "-"}</Descriptions.Item>
               </Descriptions>
-              <Button type="primary" icon={<PrinterOutlined />} block>In giấy xác nhận</Button>
+              <Button type="primary" icon={<PrinterOutlined />} block onClick={() => void onOpenCertificateModal()}>
+                In giấy xác nhận
+              </Button>
             </Space>
           </Card>
         </Col>
@@ -142,6 +184,28 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
           {loadingQr ? <Typography.Text>Đang tạo mã QR...</Typography.Text> : null}
           {selectedQr?.qrCode ? <QRCode value={selectedQr.qrCode} size={240} /> : null}
           {selectedQr?.qrCode ? <Typography.Paragraph copyable code>{selectedQr.qrCode}</Typography.Paragraph> : null}
+        </Space>
+      </Modal>
+
+      <Modal
+        title="Chọn năm học"
+        open={certificateModalOpen}
+        okText="In giấy xác nhận"
+        cancelText="Đóng"
+        confirmLoading={academicYearLoading}
+        onOk={onPrintCertificate}
+        onCancel={() => setCertificateModalOpen(false)}
+      >
+        <Space direction="vertical" size="small" style={{ width: "100%" }}>
+          <Typography.Text>Vui lòng chọn năm học cần in giấy xác nhận.</Typography.Text>
+          <Select<number>
+            style={{ width: "100%" }}
+            placeholder="Chọn năm học"
+            loading={academicYearLoading}
+            value={selectedAcademicYearId ?? undefined}
+            options={academicYearOptions.map((item) => ({ value: item.value, label: item.label }))}
+            onChange={(value) => setSelectedAcademicYearId(value)}
+          />
         </Space>
       </Modal>
     </Space>

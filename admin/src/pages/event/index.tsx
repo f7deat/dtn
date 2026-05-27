@@ -14,6 +14,8 @@ import { apiStudentList } from "@/services/student";
 import {
     CameraOutlined,
     CheckCircleOutlined,
+    DeleteOutlined,
+    EditOutlined,
     PlusOutlined,
     QrcodeOutlined,
     TeamOutlined,
@@ -27,14 +29,16 @@ import {
     ProFormDatePicker,
     ProFormInstance,
     ProFormRadio,
+    ProFormSelect,
     ProFormText,
     ProFormTextArea,
     ProTable,
 } from "@ant-design/pro-components";
-import { Button, Alert, Descriptions, Input, message, Modal, Popconfirm, QRCode, Radio, Space, Tag, Typography } from "antd";
+import { Button, Alert, Descriptions, Input, message, Modal, Popconfirm, QRCode, Radio, Space, Tag, Typography, Row, Col } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { apiAcademicYearOptions } from "@/services/academic-year";
 
 interface EventItem {
     id: string;
@@ -337,110 +341,134 @@ const Index: React.FC = () => {
                 </Button>,
             ]}
         >
-            <ProCard
+            <ProTable<EventItem>
                 className="mb-4"
-                title="Danh sách sự kiện"
-                extra={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}>
-                <ProTable<EventItem>
-                    actionRef={eventActionRef}
-                    rowKey="id"
-                    request={apiEventList}
-                    search={{ layout: "vertical" }}
-                    onRow={(record) => ({
-                        onClick: () => setSelectedEvent(record),
-                    })}
-                    columns={[
-                        {
-                            title: "#",
-                            valueType: "indexBorder",
-                            width: 48,
+                headerTitle={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}
+                actionRef={eventActionRef}
+                rowKey="id"
+                request={apiEventList}
+                search={{ layout: "vertical" }}
+                onRow={(record) => ({
+                    onClick: () => setSelectedEvent(record),
+                })}
+                columns={[
+                    {
+                        title: "#",
+                        valueType: "indexBorder",
+                        width: 48,
+                    },
+                    {
+                        title: "Sự kiện",
+                        dataIndex: "title",
+                        render: (text, record) => (
+                            <div>
+                                <div className="font-medium mb-1">{text}</div>
+                                <div className="text-gray-500 text-sm line-clamp-2">{record.description}</div>
+                            </div>
+                        )
+                    },
+                    {
+                        title: 'Năm học',
+                        dataIndex: 'academicYearId',
+                        valueType: 'select',
+                        request: apiAcademicYearOptions,
+                        minWidth: 100,
+                    },
+                    {
+                        title: "Loại",
+                        dataIndex: "eventType",
+                        valueEnum: {
+                            0: { text: "Giới hạn", status: "Default" },
+                            1: { text: "Công khai", status: "Processing" },
                         },
-                        {
-                            title: "Sự kiện",
-                            dataIndex: "title",
-                        },
-                        {
-                            title: "Loại",
-                            dataIndex: "eventType",
-                            valueEnum: {
-                                0: { text: "Giới hạn", status: "Default" },
-                                1: { text: "Công khai", status: "Processing" },
-                            },
-                            search: false,
-                            width: 110,
-                        },
-                        {
-                            title: "Bắt đầu",
-                            dataIndex: "startDate",
-                            valueType: "date",
-                            search: false,
-                            width: 120,
-                        },
-                        {
-                            title: "Kết thúc",
-                            dataIndex: "endDate",
-                            valueType: "date",
-                            search: false,
-                            width: 120,
-                        },
-                        {
-                            title: "Người tham gia",
-                            dataIndex: "registrationCount",
-                            valueType: "digit",
-                            search: false,
-                            width: 130,
-                        },
-                        {
-                            title: "Đã check-in",
-                            dataIndex: "checkedInCount",
-                            valueType: "digit",
-                            search: false,
-                            width: 120,
-                        },
-                        {
-                            title: "Tác vụ",
-                            valueType: "option",
-                            width: 180,
-                            render: (_, record) => [
-                                <Button key="manage" size="small" type={selectedEvent?.id === record.id ? "primary" : "default"} onClick={() => setSelectedEvent(record)}>
-                                    Quản lý
-                                </Button>,
-                                <Button key="edit" size="small" onClick={() => openEditEventModal(record)}>
-                                    Sửa
-                                </Button>,
-                                <Button key={"export"} size="small" onClick={async () => {
-                                    if (!record.id) return;
-                                    const blob = await apiEventExport(record.id);
-                                    const url = window.URL.createObjectURL(blob);
-                                    const a = document.createElement("a");
-                                    a.href = url;
-                                    a.download = `check-in-${record.title}.xlsx`;
-                                    a.click();
-                                    window.URL.revokeObjectURL(url);
-                                }}>
-                                    Xuất Excel
-                                </Button>,
-                                <Popconfirm
-                                    key="delete"
-                                    title="Xóa sự kiện này?"
-                                    description="Dữ liệu check-in cũng sẽ bị xóa."
-                                    onConfirm={async () => {
-                                        await apiEventDelete(record.id);
-                                        message.success("Đã xóa sự kiện");
-                                        eventActionRef.current?.reload();
-                                        if (selectedEvent?.id === record.id) {
-                                            setSelectedEvent(undefined);
-                                        }
-                                    }}
-                                >
-                                    <Button key="delete" size="small" danger>Xóa</Button>
-                                </Popconfirm>
+                        search: false,
+                        width: 110,
+                    },
+                    {
+                        title: "Bắt đầu",
+                        dataIndex: "startDate",
+                        valueType: "date",
+                        search: false,
+                        width: 100,
+                    },
+                    {
+                        title: "Kết thúc",
+                        dataIndex: "endDate",
+                        valueType: "date",
+                        search: false,
+                        width: 100,
+                    },
+                    {
+                        title: "Tham gia",
+                        dataIndex: "registrationCount",
+                        valueType: "digit",
+                        search: false,
+                        width: 90,
+                        render: (text) => (
+                            <Tag color="processing" className="w-full text-center">{text}</Tag>
+                        )
+                    },
+                    {
+                        title: "Check-in",
+                        dataIndex: "checkedInCount",
+                        valueType: "digit",
+                        search: false,
+                        width: 80,
+                        render: (text) => (
+                            <Tag color="success" className="w-full text-center">{text}</Tag>
+                        )
+                    },
+                    {
+                        title: "Check-out",
+                        dataIndex: "checkedOutCount",
+                        valueType: "digit",
+                        search: false,
+                        width: 90,
+                        render: (text) => (
+                            <Tag color="warning" className="w-full text-center">{text}</Tag>
+                        )
+                    },
+                    {
+                        title: "Tác vụ",
+                        valueType: "option",
+                        width: 180,
+                        render: (_, record) => [
+                            <Button key="manage" size="small" type={selectedEvent?.id === record.id ? "primary" : "default"} onClick={() => setSelectedEvent(record)}>
+                                Quản lý
+                            </Button>,
+                            <Button key="edit" size="small" type="primary" onClick={() => openEditEventModal(record)} icon={<EditOutlined />} />,
+                            <Button key={"export"} size="small" onClick={async () => {
+                                if (!record.id) return;
+                                const blob = await apiEventExport(record.id);
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement("a");
+                                a.href = url;
+                                a.download = `check-in-${record.title}.xlsx`;
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                            }}>
+                                Xuất Excel
+                            </Button>,
+                            <Popconfirm
+                                key="delete"
+                                title="Xóa sự kiện này?"
+                                description="Dữ liệu check-in cũng sẽ bị xóa."
+                                onConfirm={async () => {
+                                    await apiEventDelete(record.id);
+                                    message.success("Đã xóa sự kiện");
+                                    eventActionRef.current?.reload();
+                                    if (selectedEvent?.id === record.id) {
+                                        setSelectedEvent(undefined);
+                                    }
+                                }}
+                            >
+                                <Button key="delete" size="small" danger icon={<DeleteOutlined />} type="primary" />
+                            </Popconfirm>
 
-                            ],
-                        },
-                    ]}
-                />
-            </ProCard>
+                        ],
+                    },
+                ]}
+            />
 
             <div className="md:flex gap-4">
                 <div className="md:w-2/5 mb-4">
@@ -452,6 +480,7 @@ const Index: React.FC = () => {
                             <Space direction="vertical" size="middle" style={{ width: "100%" }}>
                                 <Descriptions size="small" column={1} bordered>
                                     <Descriptions.Item label="Sự kiện">{selectedEvent.title}</Descriptions.Item>
+                                    <Descriptions.Item label="Mô tả">{selectedEvent.description ?? "Không có mô tả."}</Descriptions.Item>
                                     <Descriptions.Item label="Thời gian">
                                         {dayjs(selectedEvent.startDate).format("DD/MM/YYYY")} - {dayjs(selectedEvent.endDate).format("DD/MM/YYYY")}
                                     </Descriptions.Item>
@@ -619,16 +648,25 @@ const Index: React.FC = () => {
                     ]}
                     rules={[{ required: true, message: "Vui lòng chọn loại sự kiện" }]}
                 />
-                <ProFormDatePicker
-                    name="startDate"
-                    label="Ngày bắt đầu"
-                    rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu" }]}
-                />
-                <ProFormDatePicker
-                    name="endDate"
-                    label="Ngày kết thúc"
-                    rules={[{ required: true, message: "Vui lòng chọn ngày kết thúc" }]}
-                />
+                <Row gutter={16}>
+                    <Col xs={12} md={6}>
+                        <ProFormDatePicker
+                            name="startDate"
+                            label="Ngày bắt đầu" width="lg"
+                            rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu" }]}
+                        />
+                    </Col>
+                    <Col xs={12} md={6}>
+                        <ProFormDatePicker
+                            name="endDate"
+                            label="Ngày kết thúc" width="lg"
+                            rules={[{ required: true, message: "Vui lòng chọn ngày kết thúc" }]}
+                        />
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <ProFormSelect name="academicYearId" label="Năm học" showSearch request={apiAcademicYearOptions} />
+                    </Col>
+                </Row>
             </ModalForm>
 
             <Modal
