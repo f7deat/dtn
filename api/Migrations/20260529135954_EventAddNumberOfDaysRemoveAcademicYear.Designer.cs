@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using YouthUnion.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using YouthUnion.Infrastructure.Data;
 namespace YouthUnion.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260529135954_EventAddNumberOfDaysRemoveAcademicYear")]
+    partial class EventAddNumberOfDaysRemoveAcademicYear
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -332,47 +335,6 @@ namespace YouthUnion.Migrations
                     b.ToTable("UserEvents");
                 });
 
-            modelBuilder.Entity("YouthUnion.Core.Entities.UserEventAttendance", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateOnly>("AttendanceDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime?>("CheckedInAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CheckedInBy")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime?>("CheckedOutAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CheckedOutBy")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId", "UserId", "AttendanceDate")
-                        .IsUnique();
-
-                    b.ToTable("UserEventAttendances");
-                });
-
             modelBuilder.Entity("YouthUnion.Core.Entities.YouthUnionRole", b =>
                 {
                     b.Property<string>("Id")
@@ -642,25 +604,6 @@ namespace YouthUnion.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("YouthUnion.Core.Entities.UserEventAttendance", b =>
-                {
-                    b.HasOne("YouthUnion.Core.Entities.Event", "Event")
-                        .WithMany("UserEventAttendances")
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("YouthUnion.Core.Entities.UserEvent", "UserEvent")
-                        .WithMany("Attendances")
-                        .HasForeignKey("EventId", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-
-                    b.Navigation("UserEvent");
-                });
-
             modelBuilder.Entity("YouthUnion.Entities.EventRegistration", b =>
                 {
                     b.HasOne("YouthUnion.Core.Entities.Event", "Event")
@@ -681,14 +624,7 @@ namespace YouthUnion.Migrations
                 {
                     b.Navigation("EventRegistrations");
 
-                    b.Navigation("UserEventAttendances");
-
                     b.Navigation("UserEvents");
-                });
-
-            modelBuilder.Entity("YouthUnion.Core.Entities.UserEvent", b =>
-                {
-                    b.Navigation("Attendances");
                 });
 
             modelBuilder.Entity("YouthUnion.Entities.Category", b =>

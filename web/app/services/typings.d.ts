@@ -53,4 +53,13 @@ namespace API {
         fullName?: string;
         qrCode: string;
     }
+
+    interface MyEventAttendanceHistoryItem {
+        attendanceDate: string;
+        checkedInAt?: string;
+        checkedInBy?: string;
+        checkedOutAt?: string;
+        checkedOutBy?: string;
+        attendanceStatus?: "not-checked-in" | "checked-in" | "checked-out";
+    }
 }

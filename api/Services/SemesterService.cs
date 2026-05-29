@@ -12,7 +12,7 @@ public class SemesterService(ApplicationDbContext _context) : ISemesterService
     public async Task<THPResult> CreateAsync(SemesterCreateRequest request)
     {
         var validationResult = await ValidateRequestAsync(request);
-        if (!validationResult.IsSuccess)
+        if (!validationResult.Succeeded)
         {
             return validationResult;
         }
@@ -98,7 +98,7 @@ public class SemesterService(ApplicationDbContext _context) : ISemesterService
         if (semester is null) return THPResult.Failed("Không tìm thấy kỳ học");
 
         var validationResult = await ValidateRequestAsync(request);
-        if (!validationResult.IsSuccess)
+        if (!validationResult.Succeeded)
         {
             return validationResult;
         }

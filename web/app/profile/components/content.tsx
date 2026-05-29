@@ -1,9 +1,9 @@
 "use client";
 
-import { apiMyEventQr } from "@/app/services/event";
+import { apiMyEventAttendanceHistory, apiMyEventQr } from "@/app/services/event";
 import { apiAcademicYearOptions } from "@/app/services/academicYear";
-import { CalendarOutlined, CheckCircleOutlined, PrinterOutlined, QrcodeOutlined, UserOutlined } from "@ant-design/icons";
-import { Alert, Button, Card, Col, Descriptions, Empty, Modal, QRCode, Row, Select, Space, Tag, Typography, message } from "antd";
+import { CalendarOutlined, CheckCircleOutlined, HistoryOutlined, PrinterOutlined, QrcodeOutlined, UserOutlined } from "@ant-design/icons";
+import { Alert, Button, Card, Col, Descriptions, Empty, List, Modal, QRCode, Row, Select, Space, Tag, Typography, message } from "antd";
 import dayjs from "dayjs";
 import { useState } from "react";
 
@@ -16,6 +16,10 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
   const [qrOpen, setQrOpen] = useState(false);
   const [loadingQr, setLoadingQr] = useState(false);
   const [selectedQr, setSelectedQr] = useState<API.EventQrPayload | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedHistoryEvent, setSelectedHistoryEvent] = useState<API.MyEventItem | null>(null);
+  const [attendanceHistory, setAttendanceHistory] = useState<API.MyEventAttendanceHistoryItem[]>([]);
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
   const [academicYearOptions, setAcademicYearOptions] = useState<API.AcademicYearOption[]>([]);
   const [academicYearLoading, setAcademicYearLoading] = useState(false);
@@ -56,6 +60,18 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
       }
     } finally {
       setAcademicYearLoading(false);
+    }
+  };
+
+  const onOpenHistory = async (eventItem: API.MyEventItem) => {
+    setSelectedHistoryEvent(eventItem);
+    setHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const items = await apiMyEventAttendanceHistory(eventItem.id);
+      setAttendanceHistory(items);
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -161,6 +177,9 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
                     <Button type="primary" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(eventItem.id)}>
                       Lấy mã QR
                     </Button>
+                    <Button type="primary" icon={<HistoryOutlined />} onClick={() => void onOpenHistory(eventItem)}>
+                      Lịch sử check-in
+                    </Button>
                   </Space>
                 </Card>
               </Col>
@@ -207,6 +226,45 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ currentUser, events }) 
             onChange={(value) => setSelectedAcademicYearId(value)}
           />
         </Space>
+      </Modal>
+
+      <Modal
+        title={`Lịch sử check-in/check-out${selectedHistoryEvent ? ` - ${selectedHistoryEvent.title}` : ""}`}
+        open={historyModalOpen}
+        footer={null}
+        onCancel={() => {
+          setHistoryModalOpen(false);
+          setSelectedHistoryEvent(null);
+          setAttendanceHistory([]);
+        }}
+      >
+        {historyLoading ? (
+          <Typography.Text>Đang tải lịch sử điểm danh...</Typography.Text>
+        ) : attendanceHistory.length === 0 ? (
+          <Empty description="Bạn chưa có lịch sử check-in/check-out cho sự kiện này." />
+        ) : (
+          <List
+            dataSource={attendanceHistory}
+            renderItem={(item) => (
+              <List.Item>
+                <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                  <Space wrap>
+                    <Tag color="blue">Ngày {dayjs(item.attendanceDate).format("DD/MM/YYYY")}</Tag>
+                    <Tag color={item.attendanceStatus === "checked-out" ? "warning" : item.attendanceStatus === "checked-in" ? "success" : "default"}>
+                      {item.attendanceStatus === "checked-out" ? "Đã checkout" : item.attendanceStatus === "checked-in" ? "Đã check-in" : "Chưa check-in"}
+                    </Tag>
+                  </Space>
+                  <Typography.Text type="secondary">
+                    {item.checkedInAt ? `Check-in: ${dayjs(item.checkedInAt).format("HH:mm DD/MM/YYYY")}` : "Check-in: Chưa có dữ liệu"}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {item.checkedOutAt ? `Checkout: ${dayjs(item.checkedOutAt).format("HH:mm DD/MM/YYYY")}` : "Checkout: Chưa có dữ liệu"}
+                  </Typography.Text>
+                </Space>
+              </List.Item>
+            )}
+          />
+        )}
       </Modal>
     </Space>
   );

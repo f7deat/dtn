@@ -15,3 +15,8 @@ export async function apiMyEventQr(eventId: string) {
   const response = await createRequest().get(`event/my-qr/${eventId}`);
   return (response.data?.data ?? null) as API.EventQrPayload | null;
 }
+
+export async function apiMyEventAttendanceHistory(eventId: string) {
+  const response = await createRequest().get(`event/my-events/${eventId}/attendance-history`);
+  return (response.data?.data ?? []) as API.MyEventAttendanceHistoryItem[];
+}

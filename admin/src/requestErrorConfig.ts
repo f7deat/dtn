@@ -78,9 +78,6 @@ export const errorConfig: RequestConfig = {
         // \`error.request\` 在浏览器中是 XMLHttpRequest 的实例，
         // 而在node.js中是 http.ClientRequest 的实例
         message.error('None response! Please retry.');
-      } else {
-        // 发送请求时出了点问题
-        message.error('Request error, please retry.');
       }
     },
   },
@@ -108,8 +105,9 @@ export const errorConfig: RequestConfig = {
       // 拦截响应数据，进行个性化处理
       const { data } = response as unknown as ResponseStructure;
 
-      if (data?.success === false) {
-        message.error('请求失败！');
+      if (data?.succeeded === false) {
+        message.error(data?.message || 'Error');
+        throw new Error(data?.message || 'Error');
       }
       return response;
     },

@@ -14,18 +14,17 @@ public class Event : BaseEntity
     public string? Content { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
+    public int NumberOfDays { get; set; } = 1;
     [StringLength(2048)]
     public string? Thumbnail { get; set; }
     public EventType EventType { get; set; } = EventType.Limited;
-    [ForeignKey(nameof(AcademicYear))]
-    public int? AcademicYearId { get; set; }
     [ForeignKey(nameof(Semester))]
     public int? SemesterId { get; set; }
 
-    public virtual AcademicYear? AcademicYear { get; set; }
     public virtual Semester? Semester { get; set; }
     public virtual ICollection<EventRegistration>? EventRegistrations { get; set; }
     public virtual ICollection<UserEvent>? UserEvents { get; set; }
+    public virtual ICollection<UserEventAttendance>? UserEventAttendances { get; set; }
 }
 
 public enum EventType

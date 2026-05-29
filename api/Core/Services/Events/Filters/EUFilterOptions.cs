@@ -9,4 +9,5 @@ public class EUFilterOptions : FilterOptions
     public string? FullName { get; set; }
     public string? ClassCode { get; set; }
     public string? AttendanceStatus { get; set; }
+    public DateOnly? AttendanceDate { get; set; }
 }

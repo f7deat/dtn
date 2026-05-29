@@ -5,4 +5,5 @@ public class EventCheckInArgs
     public Guid? EventId { get; set; }
     public string QrCode { get; set; } = default!;
     public string? Action { get; set; }
+    public DateOnly? AttendanceDate { get; set; }
 }

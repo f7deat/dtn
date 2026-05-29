@@ -1,32 +1,21 @@
 import {
-    apiEventAddUser,
-    apiEventCheckIn,
     apiEventCreate,
     apiEventDelete,
     apiEventExport,
-    apiEventGenerateQr,
     apiEventList,
-    apiEventRemoveUser,
     apiEventUpdate,
-    apiEventUserList,
 } from "@/services/event";
-import { apiStudentList } from "@/services/student";
 import {
-    CameraOutlined,
-    CheckCircleOutlined,
     DeleteOutlined,
     EditOutlined,
     PlusOutlined,
-    QrcodeOutlined,
-    TeamOutlined,
-    UserDeleteOutlined,
 } from "@ant-design/icons";
 import {
     ActionType,
     ModalForm,
     PageContainer,
-    ProCard,
     ProFormDatePicker,
+    ProFormDigit,
     ProFormInstance,
     ProFormRadio,
     ProFormSelect,
@@ -34,10 +23,10 @@ import {
     ProFormTextArea,
     ProTable,
 } from "@ant-design/pro-components";
-import { Button, Alert, Descriptions, Input, message, Modal, Popconfirm, QRCode, Radio, Space, Tag, Typography, Row, Col } from "antd";
+import { history } from "@umijs/max";
+import { Button, message, Popconfirm, Tag, Row, Col } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
 import { apiAcademicYearOptions } from "@/services/academic-year";
 import { apiSemesterOptions } from "@/services/semester";
 
@@ -47,81 +36,22 @@ interface EventItem {
     description?: string;
     startDate: string;
     endDate: string;
+    numberOfDays: number;
     registrationCount: number;
     checkedInCount: number;
+    checkedOutCount: number;
     eventType: 0 | 1; // 0 = Limited, 1 = Public
     academicYearId?: number;
     semesterId?: number;
+    semesterName?: string;
 }
-
-interface EventUserItem {
-    id: string;
-    userId: string;
-    userName: string;
-    fullName: string;
-    classCode?: string;
-    className?: string;
-    departmentName?: string;
-    checkedInAt?: string;
-    checkedInBy?: string;
-    checkedOutAt?: string;
-    checkedOutBy?: string;
-    isCheckedIn: boolean;
-    isCheckedOut?: boolean;
-    attendanceStatus?: "not-checked-in" | "checked-in" | "checked-out";
-}
-
-type AttendanceAction = "check-in" | "check-out";
-
-interface AttendanceScanResult {
-    action: AttendanceAction;
-    userName?: string;
-    fullName?: string;
-    classCode?: string;
-    className?: string;
-    checkedInAt?: string;
-    checkedInBy?: string;
-    checkedOutAt?: string;
-    checkedOutBy?: string;
-}
-
-interface StudentItem {
-    id: number;
-    userName: string;
-    fullName: string;
-    classCode?: string;
-    departmentName?: string;
-}
-
-const emptyTableResult = {
-    data: [],
-    success: true,
-    total: 0,
-};
 
 const Index: React.FC = () => {
     const eventActionRef = useRef<ActionType>(null);
-    const userActionRef = useRef<ActionType>(null);
     const eventFormRef = useRef<ProFormInstance>(null);
-    const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-    const scannerInitializedRef = useRef(false);
-    const scanRequestRef = useRef(false);
-    const lastScanRef = useRef<{ value: string; at: number; }>({ value: "", at: 0 });
 
-    const [selectedEvent, setSelectedEvent] = useState<EventItem>();
     const [editingEvent, setEditingEvent] = useState<EventItem>();
     const [eventModalOpen, setEventModalOpen] = useState(false);
-    const [addUserModalOpen, setAddUserModalOpen] = useState(false);
-    const [scannerOpen, setScannerOpen] = useState(false);
-    const [qrModalOpen, setQrModalOpen] = useState(false);
-    const [selectedStudents, setSelectedStudents] = useState<StudentItem[]>([]);
-    const [selectedStudentKeys, setSelectedStudentKeys] = useState<React.Key[]>([]);
-    const [qrLoading, setQrLoading] = useState(false);
-    const [qrPayload, setQrPayload] = useState<{ qrCode: string; fullName?: string; userName?: string; }>();
-    const [manualQrCode, setManualQrCode] = useState("");
-    const [scannerError, setScannerError] = useState<string>();
-    const [scanAction, setScanAction] = useState<AttendanceAction>("check-in");
-    const [latestScan, setLatestScan] = useState<AttendanceScanResult>();
 
     useEffect(() => {
         if (editingEvent && eventFormRef.current) {
@@ -130,6 +60,7 @@ const Index: React.FC = () => {
                 description: editingEvent.description,
                 startDate: dayjs(editingEvent.startDate),
                 endDate: dayjs(editingEvent.endDate),
+                numberOfDays: editingEvent.numberOfDays,
                 eventType: editingEvent.eventType,
                 academicYearId: editingEvent.academicYearId,
                 semesterId: editingEvent.semesterId,
@@ -139,119 +70,6 @@ const Index: React.FC = () => {
             eventFormRef.current?.resetFields();
         }
     }, [editingEvent, eventModalOpen]);
-
-    useEffect(() => {
-        if (!scannerOpen) {
-            stopScanner();
-            setScannerError(undefined);
-            return;
-        }
-
-        void startScanner();
-        return () => {
-            stopScanner();
-        };
-    }, [scannerOpen, selectedEvent]);
-
-    const stopScanner = () => {
-        if (html5QrCodeRef.current && scannerInitializedRef.current) {
-            const scanner = html5QrCodeRef.current;
-            try {
-                // Check if scanner is actually running before stopping
-                const state = scanner.getState();
-                if (state === 2) { // 2 = SCANNING state
-                    scanner.stop().then(() => {
-                        try {
-                            scanner.clear();
-                        } catch (e) {
-                            // Ignore clear errors
-                        }
-                    }).catch(() => {
-                        // Ignore errors when stopping
-                    }).finally(() => {
-                        html5QrCodeRef.current = null;
-                        scannerInitializedRef.current = false;
-                    });
-                } else {
-                    // If not scanning, just clear and reset
-                    try {
-                        scanner.clear();
-                    } catch (e) {
-                        // Ignore clear errors
-                    }
-                    html5QrCodeRef.current = null;
-                    scannerInitializedRef.current = false;
-                }
-            } catch (error) {
-                // Handle any errors during state check
-                html5QrCodeRef.current = null;
-                scannerInitializedRef.current = false;
-            }
-        } else {
-            // Reset refs even if scanner wasn't properly initialized
-            html5QrCodeRef.current = null;
-            scannerInitializedRef.current = false;
-        }
-    };
-
-    const handleAttendanceScan = async (qrCode: string) => {
-        const normalizedQrCode = qrCode.trim();
-        if (!selectedEvent || scanRequestRef.current || !normalizedQrCode) {
-            return;
-        }
-
-        const now = Date.now();
-        const scanKey = `${scanAction}:${normalizedQrCode}`;
-        if (lastScanRef.current.value === scanKey && now - lastScanRef.current.at < 3000) {
-            return;
-        }
-
-        lastScanRef.current = { value: scanKey, at: now };
-        scanRequestRef.current = true;
-        try {
-            const res = await apiEventCheckIn({ eventId: selectedEvent.id, qrCode: normalizedQrCode, action: scanAction });
-            const response = res.data;
-            setLatestScan(response);
-            setManualQrCode("");
-            const actionLabel = response.action === "check-out" ? "checkout" : "check-in";
-            message.success(`Đã ${actionLabel} ${response.fullName ?? response.userName ?? "người tham gia"}`);
-            userActionRef.current?.reload();
-            eventActionRef.current?.reload();
-        } finally {
-            scanRequestRef.current = false;
-        }
-    };
-
-    const startScanner = async () => {
-        if (!selectedEvent) {
-            setScannerError("Vui lòng chọn sự kiện trước khi quét QR.");
-            return;
-        }
-
-        try {
-            const html5QrCode = new Html5Qrcode("qr-reader");
-            html5QrCodeRef.current = html5QrCode;
-
-            await html5QrCode.start(
-                { facingMode: "environment" },
-                {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 }
-                },
-                (decodedText) => {
-                    void handleAttendanceScan(decodedText);
-                },
-                () => {
-                    // Ignore scan failures
-                }
-            );
-            scannerInitializedRef.current = true;
-        } catch (error) {
-            setScannerError("Không thể mở camera. Hãy kiểm tra quyền truy cập hoặc nhập mã QR thủ công.");
-            html5QrCodeRef.current = null;
-            scannerInitializedRef.current = false;
-        }
-    };
 
     const openCreateEventModal = () => {
         setEditingEvent(undefined);
@@ -264,10 +82,12 @@ const Index: React.FC = () => {
     };
 
     const onSubmitEvent = async (values: any) => {
+        const { academicYearId: _, ...rest } = values;
         const payload = {
-            ...values,
+            ...rest,
             startDate: dayjs(values.startDate)?.format("YYYY-MM-DD"),
             endDate: dayjs(values.endDate)?.format("YYYY-MM-DD"),
+            numberOfDays: Number(values.numberOfDays) || 1,
         };
 
         if (editingEvent) {
@@ -283,79 +103,19 @@ const Index: React.FC = () => {
         eventActionRef.current?.reload();
     };
 
-    const onAddUsers = async () => {
-        if (!selectedEvent || selectedStudents.length === 0) {
-            return;
-        }
-
-        for (const student of selectedStudents) {
-            await apiEventAddUser({
-                eventId: selectedEvent.id,
-                userName: student.userName,
-            });
-        }
-
-        message.success("Đã thêm người tham gia vào sự kiện");
-        setAddUserModalOpen(false);
-        setSelectedStudents([]);
-        setSelectedStudentKeys([]);
-        userActionRef.current?.reload();
-        eventActionRef.current?.reload();
-    };
-
-    const onRemoveUser = async (user: EventUserItem) => {
-        if (!selectedEvent) {
-            return;
-        }
-
-        await apiEventRemoveUser({
-            eventId: selectedEvent.id,
-            userId: user.userId,
-        });
-        message.success("Đã xóa người tham gia khỏi sự kiện");
-        userActionRef.current?.reload();
-        eventActionRef.current?.reload();
-    };
-
-    const onOpenQr = async (user: EventUserItem) => {
-        if (!selectedEvent) {
-            return;
-        }
-
-        setQrModalOpen(true);
-        setQrLoading(true);
-        try {
-            const response = await apiEventGenerateQr({
-                eventId: selectedEvent.id,
-                userId: user.userId,
-            });
-            setQrPayload(response);
-        } finally {
-            setQrLoading(false);
-        }
-    };
-
     return (
         <PageContainer
-            extra={[
+            extra={
                 <Button key="create" type="primary" icon={<PlusOutlined />} onClick={openCreateEventModal}>
                     Tạo sự kiện
-                </Button>,
-                <Button hidden key="scan" icon={<CameraOutlined />} disabled={!selectedEvent} onClick={() => setScannerOpen(true)}>
-                    Quét QR
-                </Button>,
-            ]}
+                </Button>
+            }
         >
             <ProTable<EventItem>
-                className="mb-4"
-                headerTitle={selectedEvent ? <Tag color="processing">Đang quản lý: {selectedEvent.title}</Tag> : undefined}
                 actionRef={eventActionRef}
                 rowKey="id"
                 request={apiEventList}
                 search={{ layout: "vertical" }}
-                onRow={(record) => ({
-                    onClick: () => setSelectedEvent(record),
-                })}
                 columns={[
                     {
                         title: "#",
@@ -373,18 +133,22 @@ const Index: React.FC = () => {
                         )
                     },
                     {
-                        title: 'Năm học',
-                        dataIndex: 'academicYearId',
-                        valueType: 'select',
-                        request: apiAcademicYearOptions,
-                        minWidth: 100,
-                    },
-                    {
                         title: 'Kỳ học',
                         dataIndex: 'semesterId',
                         valueType: 'select',
-                        request: async (params) => apiSemesterOptions({ academicYearId: params?.academicYearId }),
-                        minWidth: 100,
+                        request: async () => apiSemesterOptions({}),
+                        minWidth: 120,
+                        render: (_, record) => record.semesterName ?? "-",
+                    },
+                    {
+                        title: "Số ngày",
+                        dataIndex: "numberOfDays",
+                        valueType: "digit",
+                        search: false,
+                        width: 90,
+                        render: (text) => (
+                            <Tag color="cyan" className="w-full text-center">{text}</Tag>
+                        )
                     },
                     {
                         title: "Loại",
@@ -445,7 +209,7 @@ const Index: React.FC = () => {
                         valueType: "option",
                         width: 180,
                         render: (_, record) => [
-                            <Button key="manage" size="small" type={selectedEvent?.id === record.id ? "primary" : "default"} onClick={() => setSelectedEvent(record)}>
+                            <Button key="manage" size="small" type="primary" onClick={() => history.push(`/event/center/${record.id}`)}>
                                 Quản lý
                             </Button>,
                             <Button key="edit" size="small" type="primary" onClick={() => openEditEventModal(record)} icon={<EditOutlined />} />,
@@ -469,9 +233,6 @@ const Index: React.FC = () => {
                                     await apiEventDelete(record.id);
                                     message.success("Đã xóa sự kiện");
                                     eventActionRef.current?.reload();
-                                    if (selectedEvent?.id === record.id) {
-                                        setSelectedEvent(undefined);
-                                    }
                                 }}
                             >
                                 <Button key="delete" size="small" danger icon={<DeleteOutlined />} type="primary" />
@@ -481,156 +242,6 @@ const Index: React.FC = () => {
                     },
                 ]}
             />
-
-            <div className="md:flex gap-4">
-                <div className="md:w-2/5 mb-4">
-                    <ProCard
-                        title="Phiên điểm danh"
-                        extra={<Button icon={<TeamOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>Thêm người tham gia</Button>}
-                    >
-                        {selectedEvent ? (
-                            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                                <Descriptions size="small" column={1} bordered>
-                                    <Descriptions.Item label="Sự kiện">{selectedEvent.title}</Descriptions.Item>
-                                    <Descriptions.Item label="Mô tả">{selectedEvent.description ?? "Không có mô tả."}</Descriptions.Item>
-                                    <Descriptions.Item label="Thời gian">
-                                        {dayjs(selectedEvent.startDate).format("DD/MM/YYYY")} - {dayjs(selectedEvent.endDate).format("DD/MM/YYYY")}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Tiến độ">
-                                        <Tag color="blue">{selectedEvent.checkedInCount}/{selectedEvent.registrationCount} đã check-in</Tag>
-                                    </Descriptions.Item>
-                                </Descriptions>
-
-                                <Alert
-                                    type="info"
-                                    showIcon
-                                    message="Luồng check-in / checkout"
-                                    description="Chọn thao tác trước khi quét. Mỗi người tham gia dùng cùng một mã QR cho check-in và checkout của sự kiện."
-                                />
-
-                                <Radio.Group
-                                    value={scanAction}
-                                    onChange={(event) => setScanAction(event.target.value as AttendanceAction)}
-                                    optionType="button"
-                                    buttonStyle="solid"
-                                    options={[
-                                        { label: "Check-in", value: "check-in" },
-                                        { label: "Checkout", value: "check-out" },
-                                    ]}
-                                />
-
-                                {latestScan ? (
-                                    <Alert
-                                        type={latestScan.action === "check-out" ? "warning" : "success"}
-                                        showIcon
-                                        icon={<CheckCircleOutlined />}
-                                        message={`Vừa ${latestScan.action === "check-out" ? "checkout" : "check-in"}: ${latestScan.fullName ?? latestScan.userName}`}
-                                        description={`Thời gian: ${dayjs(latestScan.action === "check-out" ? latestScan.checkedOutAt : latestScan.checkedInAt).format("HH:mm DD/MM/YYYY")}`}
-                                    />
-                                ) : null}
-
-                                <Button type="primary" icon={<CameraOutlined />} onClick={() => setScannerOpen(true)}>
-                                    Mở camera quét QR
-                                </Button>
-                            </Space>
-                        ) : (
-                            <Alert type="warning" showIcon message="Chưa chọn sự kiện" description="Hãy chọn một sự kiện ở bảng phía trên để quản lý người tham gia và quét QR." />
-                        )}
-                    </ProCard>
-                </div>
-
-                <ProTable<EventUserItem>
-                    actionRef={userActionRef}
-                    rowKey="userId"
-                    size="small"
-                    search={{ layout: "vertical" }}
-                    params={{ eventId: selectedEvent?.id }}
-                    request={async (params) => {
-                        if (!selectedEvent) {
-                            return emptyTableResult;
-                        }
-                        return apiEventUserList({ ...params, eventId: selectedEvent.id });
-                    }}
-                    toolBarRender={() => [
-                        <Button key="add-user" icon={<PlusOutlined />} disabled={!selectedEvent || selectedEvent?.eventType === 1} onClick={() => setAddUserModalOpen(true)}>
-                            Thêm người tham gia
-                        </Button>
-                    ]}
-                    columns={[
-                        {
-                            title: "Mã SV",
-                            dataIndex: "userName",
-                        },
-                        {
-                            title: "Họ và tên",
-                            dataIndex: "name",
-                            search: false,
-                            minWidth: 150
-                        },
-                        {
-                            title: "Lớp",
-                            dataIndex: "classCode",
-                            search: false,
-                            render: (text, record) => (
-                                <div>
-                                    <div>{record.classCode}</div>
-                                    <div className="text-gray-500 text-xs">{record.departmentName}</div>
-                                </div>
-                            )
-                        },
-                        {
-                            title: "Trạng thái",
-                            dataIndex: "attendanceStatus",
-                            valueEnum: {
-                                "not-checked-in": { text: "Chưa check-in", status: "Default" },
-                                "checked-in": { text: "Đã check-in", status: "Success" },
-                                "checked-out": { text: "Đã checkout", status: "Warning" },
-                            },
-                            width: 120,
-                        },
-                        {
-                            title: "Thời gian vào",
-                            dataIndex: "checkedInAt",
-                            valueType: "dateTime",
-                            search: false,
-                            width: 160,
-                        },
-                        {
-                            title: "Người checkin",
-                            dataIndex: "checkedInBy",
-                            search: false,
-                            hidden: true,
-                        },
-                        {
-                            title: "Thời gian ra",
-                            dataIndex: "checkedOutAt",
-                            valueType: "dateTime",
-                            search: false,
-                            width: 160,
-                        },
-                        {
-                            title: "Người checkout",
-                            dataIndex: "checkedOutBy",
-                            search: false,
-                            hidden: true,
-                        },
-                        {
-                            title: "Tác vụ",
-                            valueType: "option",
-                            render: (_, record) => [
-                                <Button hidden key="qr" size="small" icon={<QrcodeOutlined />} onClick={() => void onOpenQr(record)}>
-                                    QR
-                                </Button>,
-                                <Popconfirm key="remove" title="Xóa người này khỏi sự kiện?" onConfirm={() => void onRemoveUser(record)}>
-                                    <Button size="small" danger icon={<UserDeleteOutlined />}>
-                                        Xóa
-                                    </Button>
-                                </Popconfirm>,
-                            ],
-                        },
-                    ]}
-                />
-            </div>
 
             <ModalForm
                 title={editingEvent ? "Cập nhật sự kiện" : "Tạo sự kiện"}
@@ -661,26 +272,37 @@ const Index: React.FC = () => {
                     rules={[{ required: true, message: "Vui lòng chọn loại sự kiện" }]}
                 />
                 <Row gutter={16}>
-                    <Col xs={12} md={6}>
+                    <Col xs={24} md={6}>
                         <ProFormDatePicker
                             name="startDate"
                             label="Ngày bắt đầu" width="lg"
                             rules={[{ required: true, message: "Vui lòng chọn ngày bắt đầu" }]}
                         />
                     </Col>
-                    <Col xs={12} md={6}>
+                    <Col xs={24} md={6}>
                         <ProFormDatePicker
                             name="endDate"
                             label="Ngày kết thúc" width="lg"
                             rules={[{ required: true, message: "Vui lòng chọn ngày kết thúc" }]}
                         />
                     </Col>
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={6}>
+                        <ProFormDigit
+                            name="numberOfDays"
+                            label="Số ngày"
+                            initialValue={1}
+                            min={1}
+                            max={365}
+                            rules={[{ required: true, message: "Vui lòng nhập số ngày" }]}
+                        />
+                    </Col>
+                    <Col xs={24} md={6}>
                         <ProFormSelect
                             name="academicYearId"
                             label="Năm học"
                             showSearch
                             request={apiAcademicYearOptions}
+                            rules={[{ required: true, message: "Vui lòng chọn năm học" }]}
                             fieldProps={{
                                 onChange: () => {
                                     eventFormRef.current?.setFieldValue("semesterId", undefined);
@@ -688,7 +310,7 @@ const Index: React.FC = () => {
                             }}
                         />
                     </Col>
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={6}>
                         <ProFormSelect
                             name="semesterId"
                             label="Kỳ học"
@@ -700,122 +322,11 @@ const Index: React.FC = () => {
                                 }
                                 return apiSemesterOptions({ academicYearId: params.academicYearId });
                             }}
+                            rules={[{ required: true, message: "Vui lòng chọn kỳ học" }]}
                         />
                     </Col>
                 </Row>
             </ModalForm>
-
-            <Modal
-                title="Thêm người tham gia"
-                open={addUserModalOpen}
-                onCancel={() => {
-                    setAddUserModalOpen(false);
-                    setSelectedStudents([]);
-                    setSelectedStudentKeys([]);
-                }}
-                onOk={() => void onAddUsers()}
-                okText="Thêm vào sự kiện"
-                width={960}
-                okButtonProps={{ disabled: selectedStudents.length === 0 || !selectedEvent }}
-            >
-                <ProTable<StudentItem>
-                    rowKey="userName"
-                    request={apiStudentList}
-                    search={{ layout: "vertical" }}
-                    pagination={{ pageSize: 5 }}
-                    rowSelection={{
-                        selectedRowKeys: selectedStudentKeys,
-                        onChange: (keys, rows) => {
-                            setSelectedStudentKeys(keys);
-                            setSelectedStudents(rows);
-                        },
-                    }}
-                    columns={[
-                        {
-                            title: "Mã SV",
-                            dataIndex: "userName",
-                        },
-                        {
-                            title: "Họ và tên",
-                            dataIndex: "fullName",
-                        },
-                        {
-                            title: "Lớp",
-                            dataIndex: "classCode",
-                        },
-                        {
-                            title: "Khoa",
-                            dataIndex: "departmentName",
-                            search: false,
-                        },
-                    ]}
-                />
-            </Modal>
-
-            <Modal
-                title={scanAction === "check-out" ? "Quét QR checkout" : "Quét QR check-in"}
-                open={scannerOpen}
-                onCancel={() => setScannerOpen(false)}
-                footer={null}
-                width={720}
-            >
-                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-                    {/* <Radio.Group
-                        value={scanAction}
-                        onChange={(event) => setScanAction(event.target.value as AttendanceAction)}
-                        optionType="button"
-                        buttonStyle="solid"
-                        options={[
-                            { label: "Check-in", value: "check-in" },
-                            { label: "Checkout", value: "check-out" },
-                        ]}
-                    /> */}
-
-                    {scannerError ? (
-                        <Alert type="warning" showIcon message={scannerError} />
-                    ) : (
-                        <div
-                            id="qr-reader"
-                            style={{ width: "100%", borderRadius: 12, overflow: "hidden" }}
-                        />
-                    )}
-
-                    <Alert
-                        type="info"
-                        showIcon
-                        message="Nhập mã thủ công"
-                        description={`Nếu camera không quét được, hãy dán chuỗi QR của người tham gia vào ô bên dưới để ${scanAction === "check-out" ? "checkout" : "check-in"}.`}
-                    />
-
-                    <Input.Search
-                        placeholder="Dán chuỗi QR vào đây"
-                        enterButton={scanAction === "check-out" ? "Checkout" : "Check-in"}
-                        value={manualQrCode}
-                        onChange={(event) => setManualQrCode(event.target.value)}
-                        onSearch={(value) => void handleAttendanceScan(value)}
-                    />
-                </Space>
-            </Modal>
-
-            <Modal
-                title="Mã QR người tham gia"
-                open={qrModalOpen}
-                onCancel={() => {
-                    setQrModalOpen(false);
-                    setQrPayload(undefined);
-                }}
-                footer={null}
-            >
-                <Space direction="vertical" size="middle" align="center" style={{ width: "100%", justifyContent: "center" }}>
-                    <Typography.Title level={5} style={{ marginBottom: 0 }}>
-                        {qrPayload?.fullName ?? "Đang tải dữ liệu..."}
-                    </Typography.Title>
-                    <Typography.Text type="secondary">{qrPayload?.userName}</Typography.Text>
-                    {qrLoading ? <Typography.Text>Đang tạo QR...</Typography.Text> : null}
-                    {qrPayload?.qrCode ? <QRCode value={qrPayload.qrCode} size={240} /> : null}
-                    {qrPayload?.qrCode ? <Typography.Paragraph copyable code>{qrPayload.qrCode}</Typography.Paragraph> : null}
-                </Space>
-            </Modal>
         </PageContainer>
     );
 };

@@ -36,9 +36,6 @@ public class AcademicYearService(ApplicationDbContext _context) : IAcademicYearS
         if (await _context.Semesters.AnyAsync(x => x.AcademicYearId == id))
             return THPResult.Failed("Không thể xóa năm học đang chứa kỳ học");
 
-        if (await _context.Events.AnyAsync(x => x.AcademicYearId == id))
-            return THPResult.Failed("Không thể xóa năm học đang được dùng bởi sự kiện");
-
         _context.AcademicYears.Remove(academicYear);
         await _context.SaveChangesAsync();
         return THPResult.Success;
@@ -54,7 +51,10 @@ public class AcademicYearService(ApplicationDbContext _context) : IAcademicYearS
                         a.StartDate,
                         a.EndDate,
                         SemesterCount = _context.Semesters.Count(x => x.AcademicYearId == a.Id),
-                        EventCount = _context.Events.Count(x => x.AcademicYearId == a.Id)
+                        EventCount = (from e in _context.Events
+                                      join s in _context.Semesters on e.SemesterId equals s.Id
+                                      where s.AcademicYearId == a.Id
+                                      select e.Id).Count()
                     };
 
         if (!string.IsNullOrWhiteSpace(filterOptions.Name))

@@ -20,7 +20,24 @@
     path: '/event',
     name: 'event',
     icon: 'CalendarOutlined',
-    component: './event'
+    routes: [
+      {
+        path: '/event',
+        redirect: '/event/overview',
+      },
+      {
+        path: '/event/overview',
+        name: 'overview',
+        component: './event',
+        hideInMenu: true,
+      },
+      {
+        path: '/event/center/:id',
+        name: 'center',
+        component: './event/center',
+        hideInMenu: true
+      }
+    ]
   },
   {
     path: '/article',
@@ -55,13 +72,29 @@
     path: '/academic-year',
     name: 'academic-year',
     icon: 'ScheduleOutlined',
-    component: './academic-year'
+    routes: [
+      {
+        path: '/academic-year',
+        redirect: '/academic-year/overview',
+      },
+      {
+        path: '/academic-year/overview',
+        name: 'overview',
+        component: './academic-year',
+        hideInMenu: true,
+      },
+      {
+        path: '/academic-year/semester/:id',
+        name: 'semester',
+        component: './academic-year/semester',
+        hideInMenu: true
+      }
+    ]
   },
   {
     path: '/semester',
-    name: 'semester',
-    icon: 'CalendarOutlined',
-    component: './semester'
+    redirect: '/academic-year/overview',
+    hideInMenu: true,
   },
   {
     path: '/student',

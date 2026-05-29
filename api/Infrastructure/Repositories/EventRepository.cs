@@ -82,7 +82,7 @@ public class EventRepository(
         return THPResult.Success;
     }
 
-    public async Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId)
+    public async Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId, DateOnly? attendanceDate = null)
     {
         var eventItem = await _dbContext.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == eventId);
         if (eventItem is null)
@@ -93,31 +93,190 @@ public class EventRepository(
         var query = from ue in _dbContext.UserEvents.AsNoTracking()
                     join u in _dbContext.Users.AsNoTracking() on ue.UserId equals u.Id into userGroup
                     from user in userGroup.DefaultIfEmpty()
+                    join a in _dbContext.UserEventAttendances.AsNoTracking()
+                        on new { ue.EventId, ue.UserId } equals new { a.EventId, a.UserId }
                     join d in _dbContext.Departments on user.DepartmentId equals d.Id into deptGroup
                     from dept in deptGroup.DefaultIfEmpty()
                     where ue.EventId == eventId
-                    orderby ue.CheckedInAt descending, ue.CheckedInAt ascending
-                    select new EventCheckInExportItem(
+                    select new
+                    {
                         ue.UserId,
                         user.UserName,
-                        user.Name,
+                        Name = user.Name,
                         user.Gender,
                         user.PhoneNumber,
                         user.DateOfBirth,
-                        dept.Name,
-                        ue.CheckedInAt,
-                        ue.CheckedInBy,
-                        ue.CheckedOutAt,
-                        ue.CheckedOutBy
-                        );
+                        DepartmentName = dept.Name,
+                        a.AttendanceDate,
+                        a.CheckedInAt,
+                        a.CheckedInBy,
+                        a.CheckedOutAt,
+                        a.CheckedOutBy
+                    };
 
-        var items = await query.ToListAsync();
+        if (attendanceDate.HasValue)
+        {
+            query = query.Where(x => x.AttendanceDate == attendanceDate.Value);
+        }
+
+        var items = await query
+            .OrderByDescending(x => x.AttendanceDate)
+            .ThenByDescending(x => x.CheckedInAt)
+            .Select(x => new EventCheckInExportItem(
+                x.UserId,
+                x.UserName,
+                x.Name,
+                x.Gender,
+                x.PhoneNumber,
+                x.DateOfBirth,
+                x.DepartmentName,
+                x.AttendanceDate,
+                x.CheckedInAt,
+                x.CheckedInBy,
+                x.CheckedOutAt,
+                x.CheckedOutBy))
+            .ToListAsync();
 
         return THPResult<EventCheckInExportData>.Ok(new EventCheckInExportData(
             eventItem.Title,
             eventItem.StartDate,
             eventItem.EndDate,
             items));
+    }
+
+    public async Task<THPResult<object>> ImportCheckInAsync(Guid eventId, IReadOnlyList<EventCheckInImportItem> items)
+    {
+        var eventItem = await _dbContext.Events.FirstOrDefaultAsync(x => x.Id == eventId);
+        if (eventItem is null)
+        {
+            return THPResult<object>.Failed("Không tìm thấy sự kiện!");
+        }
+
+        if (items.Count == 0)
+        {
+            return THPResult<object>.Failed("File import không có dữ liệu hợp lệ.");
+        }
+
+        var importCount = 0;
+        var skippedCount = 0;
+        var warningMessages = new List<string>();
+        var touchedUsers = new HashSet<string>();
+        var operatorUserName = _hcaService.GetUserName();
+
+        foreach (var item in items)
+        {
+            if (string.IsNullOrWhiteSpace(item.UserName))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            if (item.AttendanceDate < eventItem.StartDate || item.AttendanceDate > eventItem.EndDate)
+            {
+                skippedCount++;
+                warningMessages.Add($"{item.UserName}: ngày {item.AttendanceDate:dd/MM/yyyy} ngoài phạm vi sự kiện.");
+                continue;
+            }
+
+            var normalizedUserName = item.UserName.Trim();
+            var user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == normalizedUserName);
+            if (user is null)
+            {
+                var addResult = await AddUserAsync(new EventUserAddArgs
+                {
+                    EventId = eventId,
+                    UserName = normalizedUserName
+                });
+
+                if (!addResult.Succeeded && addResult.Message != "Người dùng này đã có trong sự kiện!")
+                {
+                    skippedCount++;
+                    warningMessages.Add($"{normalizedUserName}: {addResult.Message}");
+                    continue;
+                }
+
+                user = await _userManager.Users.FirstOrDefaultAsync(x => x.UserName == normalizedUserName);
+                if (user is null)
+                {
+                    skippedCount++;
+                    warningMessages.Add($"{normalizedUserName}: không tìm thấy người dùng.");
+                    continue;
+                }
+            }
+
+            var userEvent = await _dbContext.UserEvents.FirstOrDefaultAsync(x => x.EventId == eventId && x.UserId == user.Id);
+            if (userEvent is null)
+            {
+                userEvent = new UserEvent
+                {
+                    EventId = eventId,
+                    UserId = user.Id
+                };
+                await _dbContext.UserEvents.AddAsync(userEvent);
+            }
+
+            var attendance = await _dbContext.UserEventAttendances.FirstOrDefaultAsync(x =>
+                x.EventId == eventId &&
+                x.UserId == user.Id &&
+                x.AttendanceDate == item.AttendanceDate);
+
+            if (attendance is null)
+            {
+                attendance = new UserEventAttendance
+                {
+                    EventId = eventId,
+                    UserId = user.Id,
+                    AttendanceDate = item.AttendanceDate
+                };
+                await _dbContext.UserEventAttendances.AddAsync(attendance);
+            }
+
+            attendance.CheckedInAt = item.CheckedInAt;
+            attendance.CheckedInBy = item.CheckedInAt.HasValue ? (item.CheckedInBy ?? operatorUserName) : null;
+            attendance.CheckedOutAt = item.CheckedOutAt;
+            attendance.CheckedOutBy = item.CheckedOutAt.HasValue ? (item.CheckedOutBy ?? operatorUserName) : null;
+
+            touchedUsers.Add(user.Id);
+            importCount++;
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+        foreach (var userId in touchedUsers)
+        {
+            var userEvent = await _dbContext.UserEvents.FirstOrDefaultAsync(x => x.EventId == eventId && x.UserId == userId);
+            if (userEvent is null)
+            {
+                continue;
+            }
+
+            var latestCheckIn = await _dbContext.UserEventAttendances
+                .Where(x => x.EventId == eventId && x.UserId == userId && x.CheckedInAt.HasValue)
+                .OrderByDescending(x => x.CheckedInAt)
+                .FirstOrDefaultAsync();
+
+            var latestCheckOut = await _dbContext.UserEventAttendances
+                .Where(x => x.EventId == eventId && x.UserId == userId && x.CheckedOutAt.HasValue)
+                .OrderByDescending(x => x.CheckedOutAt)
+                .FirstOrDefaultAsync();
+
+            userEvent.CheckedInAt = latestCheckIn?.CheckedInAt;
+            userEvent.CheckedInBy = latestCheckIn?.CheckedInBy;
+            userEvent.CheckedOutAt = latestCheckOut?.CheckedOutAt;
+            userEvent.CheckedOutBy = latestCheckOut?.CheckedOutBy;
+        }
+
+        if (touchedUsers.Count > 0)
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+
+        return THPResult<object>.Ok(new
+        {
+            Imported = importCount,
+            Skipped = skippedCount,
+            Warnings = warningMessages.Take(20).ToList()
+        });
     }
 
     public async Task<THPResult<object>> ScanQrAsync(EventCheckInArgs args)
@@ -178,31 +337,69 @@ public class EventRepository(
 
         var operatorUserName = _hcaService.GetUserName();
         var now = DateTime.Now;
+        var attendanceDate = args.AttendanceDate ?? DateOnly.FromDateTime(now);
+
+        if (attendanceDate < eventItem.StartDate || attendanceDate > eventItem.EndDate)
+        {
+            return THPResult<object>.Failed($"Ngày điểm danh {attendanceDate:dd/MM/yyyy} không nằm trong thời gian sự kiện.");
+        }
+
+        var userAttendance = await _dbContext.UserEventAttendances.FirstOrDefaultAsync(x =>
+            x.EventId == payload.EventId &&
+            x.UserId == payload.UserId &&
+            x.AttendanceDate == attendanceDate);
 
         if (scanAction == ScanAction.CheckIn)
         {
-            if (userEvent.CheckedInAt.HasValue)
+            if (userAttendance?.CheckedInAt.HasValue == true)
             {
-                return THPResult<object>.Failed($"Người tham gia đã check-in lúc {userEvent.CheckedInAt:HH:mm dd/MM/yyyy}.");
+                return THPResult<object>.Failed($"Người tham gia đã check-in ngày {attendanceDate:dd/MM/yyyy} lúc {userAttendance.CheckedInAt:HH:mm}.");
             }
 
-            userEvent.CheckedInAt = now;
-            userEvent.CheckedInBy = operatorUserName;
+            userAttendance ??= new UserEventAttendance
+            {
+                EventId = payload.EventId,
+                UserId = payload.UserId,
+                AttendanceDate = attendanceDate
+            };
+
+            userAttendance.CheckedInAt = now;
+            userAttendance.CheckedInBy = operatorUserName;
+
+            if (_dbContext.Entry(userAttendance).State == EntityState.Detached)
+            {
+                await _dbContext.UserEventAttendances.AddAsync(userAttendance);
+            }
         }
         else
         {
-            if (!userEvent.CheckedInAt.HasValue)
+            if (userAttendance?.CheckedInAt.HasValue != true)
             {
-                return THPResult<object>.Failed("Người tham gia chưa check-in nên chưa thể checkout.");
+                return THPResult<object>.Failed($"Người tham gia chưa check-in ngày {attendanceDate:dd/MM/yyyy} nên chưa thể checkout.");
             }
 
-            if (userEvent.CheckedOutAt.HasValue)
+            if (userAttendance.CheckedOutAt.HasValue)
             {
-                return THPResult<object>.Failed($"Người tham gia đã checkout lúc {userEvent.CheckedOutAt:HH:mm dd/MM/yyyy}.");
+                return THPResult<object>.Failed($"Người tham gia đã checkout ngày {attendanceDate:dd/MM/yyyy} lúc {userAttendance.CheckedOutAt:HH:mm}.");
             }
 
-            userEvent.CheckedOutAt = now;
-            userEvent.CheckedOutBy = operatorUserName;
+            userAttendance.CheckedOutAt = now;
+            userAttendance.CheckedOutBy = operatorUserName;
+        }
+
+        // Keep legacy aggregate fields in sync for existing screens.
+        if (userAttendance?.CheckedInAt.HasValue == true &&
+            (!userEvent.CheckedInAt.HasValue || userEvent.CheckedInAt.Value < userAttendance.CheckedInAt.Value))
+        {
+            userEvent.CheckedInAt = userAttendance.CheckedInAt;
+            userEvent.CheckedInBy = userAttendance.CheckedInBy;
+        }
+
+        if (userAttendance?.CheckedOutAt.HasValue == true &&
+            (!userEvent.CheckedOutAt.HasValue || userEvent.CheckedOutAt.Value < userAttendance.CheckedOutAt.Value))
+        {
+            userEvent.CheckedOutAt = userAttendance.CheckedOutAt;
+            userEvent.CheckedOutBy = userAttendance.CheckedOutBy;
         }
 
         await _dbContext.SaveChangesAsync();
@@ -222,13 +419,14 @@ public class EventRepository(
             payload.UserId,
             attendee?.UserName,
             attendee?.FullName,
+            AttendanceDate = userAttendance?.AttendanceDate,
             Action = scanAction == ScanAction.CheckIn ? "check-in" : "check-out",
-            userEvent.CheckedInAt,
-            userEvent.CheckedInBy,
-            userEvent.CheckedOutAt,
-            userEvent.CheckedOutBy,
-            IsCheckedIn = userEvent.CheckedInAt.HasValue,
-            IsCheckedOut = userEvent.CheckedOutAt.HasValue
+            CheckedInAt = userAttendance?.CheckedInAt,
+            CheckedInBy = userAttendance?.CheckedInBy,
+            CheckedOutAt = userAttendance?.CheckedOutAt,
+            CheckedOutBy = userAttendance?.CheckedOutBy,
+            IsCheckedIn = userAttendance?.CheckedInAt.HasValue == true,
+            IsCheckedOut = userAttendance?.CheckedOutAt.HasValue == true
         });
     }
 
@@ -266,8 +464,13 @@ public class EventRepository(
 
         try
         {
+            var attendanceDate = filterOptions.AttendanceDate ?? DateOnly.FromDateTime(DateTime.Now);
+
             var query = from userEvent in _context.UserEvents.AsNoTracking()
                         join user in _context.Users on userEvent.UserId equals user.Id
+                        join eventAttendance in _context.UserEventAttendances.Where(x => x.AttendanceDate == attendanceDate)
+                            on new { userEvent.EventId, userEvent.UserId } equals new { eventAttendance.EventId, eventAttendance.UserId } into attendanceGroup
+                        from attendance in attendanceGroup.DefaultIfEmpty()
                         join dept in _context.Departments on user.DepartmentId equals dept.Id into deptGroup
                         from department in deptGroup.DefaultIfEmpty()
                         where userEvent.EventId == filterOptions.EventId.Value
@@ -275,13 +478,14 @@ public class EventRepository(
                         {
                             Id = userEvent.UserId,
                             userEvent.UserId,
-                            userEvent.CheckedInAt,
-                            userEvent.CheckedInBy,
-                            userEvent.CheckedOutAt,
-                            userEvent.CheckedOutBy,
-                            IsCheckedIn = userEvent.CheckedInAt.HasValue,
-                            IsCheckedOut = userEvent.CheckedOutAt.HasValue,
-                            AttendanceStatus = userEvent.CheckedOutAt.HasValue ? "checked-out" : userEvent.CheckedInAt.HasValue ? "checked-in" : "not-checked-in",
+                            CheckedInAt = attendance.CheckedInAt,
+                            CheckedInBy = attendance.CheckedInBy,
+                            CheckedOutAt = attendance.CheckedOutAt,
+                            CheckedOutBy = attendance.CheckedOutBy,
+                            AttendanceDate = attendanceDate,
+                            IsCheckedIn = attendance.CheckedInAt.HasValue,
+                            IsCheckedOut = attendance.CheckedOutAt.HasValue,
+                            AttendanceStatus = attendance.CheckedOutAt.HasValue ? "checked-out" : attendance.CheckedInAt.HasValue ? "checked-in" : "not-checked-in",
                             user.Name,
                             user.DepartmentId,
                             user.DateOfBirth,
@@ -336,12 +540,26 @@ public class EventRepository(
                                          eventItem.EndDate,
                                          eventItem.Thumbnail,
                                          eventItem.EventType,
-                                         CheckedInAt = userEvent.CheckedInAt,
-                                         CheckedInBy = userEvent.CheckedInBy,
-                                         CheckedOutAt = userEvent.CheckedOutAt,
-                                         CheckedOutBy = userEvent.CheckedOutBy,
-                                         IsCheckedIn = userEvent.CheckedInAt.HasValue,
-                                         IsCheckedOut = userEvent.CheckedOutAt.HasValue
+                                         CheckedInAt = _dbContext.UserEventAttendances
+                                             .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedInAt.HasValue)
+                                             .Max(x => x.CheckedInAt),
+                                         CheckedInBy = _dbContext.UserEventAttendances
+                                             .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId)
+                                             .OrderByDescending(x => x.AttendanceDate)
+                                             .ThenByDescending(x => x.CheckedInAt)
+                                             .Select(x => x.CheckedInBy)
+                                             .FirstOrDefault(),
+                                         CheckedOutAt = _dbContext.UserEventAttendances
+                                             .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedOutAt.HasValue)
+                                             .Max(x => x.CheckedOutAt),
+                                         CheckedOutBy = _dbContext.UserEventAttendances
+                                             .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId)
+                                             .OrderByDescending(x => x.AttendanceDate)
+                                             .ThenByDescending(x => x.CheckedOutAt)
+                                             .Select(x => x.CheckedOutBy)
+                                             .FirstOrDefault(),
+                                         IsCheckedIn = _dbContext.UserEventAttendances.Any(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedInAt.HasValue),
+                                         IsCheckedOut = _dbContext.UserEventAttendances.Any(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedOutAt.HasValue)
                                      };
 
             // Get all public events
@@ -356,12 +574,26 @@ public class EventRepository(
                                    eventItem.EndDate,
                                    eventItem.Thumbnail,
                                    eventItem.EventType,
-                                   CheckedInAt = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt).FirstOrDefault(),
-                                   CheckedInBy = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInBy).FirstOrDefault(),
-                                   CheckedOutAt = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedOutAt).FirstOrDefault(),
-                                   CheckedOutBy = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedOutBy).FirstOrDefault(),
-                                   IsCheckedIn = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedInAt.HasValue).FirstOrDefault(),
-                                   IsCheckedOut = _dbContext.UserEvents.Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId).Select(x => x.CheckedOutAt.HasValue).FirstOrDefault()
+                                   CheckedInAt = _dbContext.UserEventAttendances
+                                       .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedInAt.HasValue)
+                                       .Max(x => x.CheckedInAt),
+                                   CheckedInBy = _dbContext.UserEventAttendances
+                                       .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId)
+                                       .OrderByDescending(x => x.AttendanceDate)
+                                       .ThenByDescending(x => x.CheckedInAt)
+                                       .Select(x => x.CheckedInBy)
+                                       .FirstOrDefault(),
+                                   CheckedOutAt = _dbContext.UserEventAttendances
+                                       .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedOutAt.HasValue)
+                                       .Max(x => x.CheckedOutAt),
+                                   CheckedOutBy = _dbContext.UserEventAttendances
+                                       .Where(x => x.EventId == eventItem.Id && x.UserId == currentUserId)
+                                       .OrderByDescending(x => x.AttendanceDate)
+                                       .ThenByDescending(x => x.CheckedOutAt)
+                                       .Select(x => x.CheckedOutBy)
+                                       .FirstOrDefault(),
+                                   IsCheckedIn = _dbContext.UserEventAttendances.Any(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedInAt.HasValue),
+                                   IsCheckedOut = _dbContext.UserEventAttendances.Any(x => x.EventId == eventItem.Id && x.UserId == currentUserId && x.CheckedOutAt.HasValue)
                                };
 
             // Combine and remove duplicates
@@ -426,13 +658,52 @@ public class EventRepository(
         });
     }
 
+    public async Task<THPResult<object>> GetMyAttendanceHistoryAsync(Guid eventId)
+    {
+        var currentUserId = _hcaService.GetUserId();
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return THPResult<object>.Failed("Không xác định được người dùng hiện tại!");
+        }
+
+        var eventItem = await _dbContext.Events.AsNoTracking().FirstOrDefaultAsync(x => x.Id == eventId);
+        if (eventItem is null)
+        {
+            return THPResult<object>.Failed("Không tìm thấy sự kiện!");
+        }
+
+        if (eventItem.EventType == EventType.Limited)
+        {
+            var userEvent = await _dbContext.UserEvents.AsNoTracking().AnyAsync(x => x.EventId == eventId && x.UserId == currentUserId);
+            if (!userEvent)
+            {
+                return THPResult<object>.Failed("Bạn không có trong danh sách tham gia sự kiện này!");
+            }
+        }
+
+        var items = await _dbContext.UserEventAttendances.AsNoTracking()
+            .Where(x => x.EventId == eventId && x.UserId == currentUserId)
+            .OrderByDescending(x => x.AttendanceDate)
+            .ThenByDescending(x => x.CheckedInAt)
+            .Select(x => new
+            {
+                x.AttendanceDate,
+                x.CheckedInAt,
+                x.CheckedInBy,
+                x.CheckedOutAt,
+                x.CheckedOutBy,
+                AttendanceStatus = x.CheckedOutAt.HasValue ? "checked-out" : x.CheckedInAt.HasValue ? "checked-in" : "not-checked-in"
+            })
+            .ToListAsync();
+
+        return THPResult<object>.Ok(items);
+    }
+
     public async Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions)
     {
         try
         {
             var query = from e in _dbContext.Events.AsNoTracking()
-                        join ay in _dbContext.AcademicYears on e.AcademicYearId equals ay.Id into ayGroup
-                        from academicYear in ayGroup.DefaultIfEmpty()
                         join s in _dbContext.Semesters on e.SemesterId equals s.Id into sGroup
                         from semester in sGroup.DefaultIfEmpty()
                         select new
@@ -442,13 +713,21 @@ public class EventRepository(
                             e.Description,
                             e.StartDate,
                             e.EndDate,
+                            e.NumberOfDays,
                             e.Thumbnail,
                             e.EventType,
                             RegistrationCount = _dbContext.UserEvents.Count(u => u.EventId == e.Id),
-                            CheckedInCount = _dbContext.UserEvents.Count(u => u.EventId == e.Id && u.CheckedInAt != null),
-                            CheckedOutCount = _dbContext.UserEvents.Count(u => u.EventId == e.Id && u.CheckedOutAt != null),
-                            e.AcademicYearId,
-                            AcademicYearName = academicYear != null ? academicYear.Name : null,
+                            CheckedInCount = _dbContext.UserEventAttendances
+                                .Where(u => u.EventId == e.Id && u.CheckedInAt != null)
+                                .Select(u => u.UserId)
+                                .Distinct()
+                                .Count(),
+                            CheckedOutCount = _dbContext.UserEventAttendances
+                                .Where(u => u.EventId == e.Id && u.CheckedOutAt != null)
+                                .Select(u => u.UserId)
+                                .Distinct()
+                                .Count(),
+                            AcademicYearId = semester != null ? (int?)semester.AcademicYearId : null,
                             e.SemesterId,
                             SemesterName = semester != null ? semester.Name : null,
                         };
@@ -457,11 +736,6 @@ public class EventRepository(
             {
                 var keyword = filterOptions.Title.Trim().ToLower();
                 query = query.Where(x => x.Title.ToLower().Contains(keyword));
-            }
-
-            if (filterOptions.AcademicYearId.HasValue)
-            {
-                query = query.Where(x => x.AcademicYearId == filterOptions.AcademicYearId.Value);
             }
 
             if (filterOptions.SemesterId.HasValue)
@@ -484,6 +758,15 @@ public class EventRepository(
         if (userEvent is null)
         {
             return THPResult.Failed("Không tìm thấy người tham gia trong sự kiện!");
+        }
+
+        var attendanceItems = await _dbContext.UserEventAttendances
+            .Where(x => x.EventId == args.EventId && x.UserId == args.UserId)
+            .ToListAsync();
+
+        if (attendanceItems.Count > 0)
+        {
+            _dbContext.UserEventAttendances.RemoveRange(attendanceItems);
         }
 
         _dbContext.UserEvents.Remove(userEvent);

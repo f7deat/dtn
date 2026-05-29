@@ -18,7 +18,13 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
 
     public async Task<THPResult> CreateAsync(EventCreateArgs args)
     {
-        var validateResult = await ValidateAcademicYearSemesterAsync(args.AcademicYearId, args.SemesterId);
+        var validateDaysResult = ValidateNumberOfDays(args.NumberOfDays);
+        if (!validateDaysResult.Succeeded)
+        {
+            return validateDaysResult;
+        }
+
+        var validateResult = await ValidateSemesterAsync(args.SemesterId);
         if (!validateResult.Succeeded)
         {
             return validateResult;
@@ -31,9 +37,9 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
             Content = args.Content,
             EndDate = args.EndDate,
             StartDate = args.StartDate,
+            NumberOfDays = args.NumberOfDays,
             Thumbnail = args.Thumbnail,
             EventType = args.EventType,
-            AcademicYearId = args.AcademicYearId,
             SemesterId = args.SemesterId
         });
         return THPResult.Success;
@@ -59,9 +65,9 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
             data.Content,
             data.StartDate,
             data.EndDate,
+            data.NumberOfDays,
             data.Thumbnail,
             data.EventType,
-            data.AcademicYearId,
             data.SemesterId
         });
     }
@@ -72,11 +78,17 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
 
     public Task<THPResult<object>> GetMyQrAsync(Guid eventId) => _eventRepository.GetMyQrAsync(eventId);
 
+    public Task<THPResult<object>> GetMyAttendanceHistoryAsync(Guid eventId) => _eventRepository.GetMyAttendanceHistoryAsync(eventId);
+
     public Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions) => _eventRepository.GetUsersAsync(filterOptions);
 
     public Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions) => _eventRepository.ListAsync(filterOptions);
 
-    public Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId) => _eventRepository.GetCheckInExportAsync(eventId);
+    public Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId, DateOnly? attendanceDate = null)
+        => _eventRepository.GetCheckInExportAsync(eventId, attendanceDate);
+
+    public Task<THPResult<object>> ImportCheckInAsync(Guid eventId, IReadOnlyList<EventCheckInImportItem> items)
+        => _eventRepository.ImportCheckInAsync(eventId, items);
 
     public Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args) => _eventRepository.RemoveUserAsync(args);
 
@@ -85,7 +97,13 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
         var data = await _eventRepository.FindAsync(args.Id);
         if (data is null) return THPResult.Failed("Không tìm thấy sự kiện!");
 
-        var validateResult = await ValidateAcademicYearSemesterAsync(args.AcademicYearId, args.SemesterId);
+        var validateDaysResult = ValidateNumberOfDays(args.NumberOfDays);
+        if (!validateDaysResult.Succeeded)
+        {
+            return validateDaysResult;
+        }
+
+        var validateResult = await ValidateSemesterAsync(args.SemesterId);
         if (!validateResult.Succeeded)
         {
             return validateResult;
@@ -96,42 +114,38 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
         data.Content = args.Content;
         data.StartDate = args.StartDate;
         data.EndDate = args.EndDate;
+        data.NumberOfDays = args.NumberOfDays;
         data.Thumbnail = args.Thumbnail;
         data.EventType = args.EventType;
-        data.AcademicYearId = args.AcademicYearId;
         data.SemesterId = args.SemesterId;
         await _eventRepository.UpdateAsync(data);
         return THPResult.Success;
     }
 
-    private async Task<THPResult> ValidateAcademicYearSemesterAsync(int? academicYearId, int? semesterId)
+    private async Task<THPResult> ValidateSemesterAsync(int? semesterId)
     {
-        if (academicYearId.HasValue)
-        {
-            var ayExists = await _context.AcademicYears.AnyAsync(x => x.Id == academicYearId.Value);
-            if (!ayExists)
-            {
-                return THPResult.Failed("Không tìm thấy năm học");
-            }
-        }
-
         if (semesterId.HasValue)
         {
-            var semester = await _context.Semesters.AsNoTracking().FirstOrDefaultAsync(x => x.Id == semesterId.Value);
-            if (semester is null)
+            var semesterExists = await _context.Semesters.AsNoTracking().AnyAsync(x => x.Id == semesterId.Value);
+            if (!semesterExists)
             {
                 return THPResult.Failed("Không tìm thấy kỳ học");
             }
+        }
 
-            if (!academicYearId.HasValue)
-            {
-                return THPResult.Failed("Vui lòng chọn năm học khi chọn kỳ học");
-            }
+        return THPResult.Success;
+    }
 
-            if (semester.AcademicYearId != academicYearId.Value)
-            {
-                return THPResult.Failed("Kỳ học không thuộc năm học đã chọn");
-            }
+    private static THPResult ValidateNumberOfDays(int numberOfDays)
+    {
+        if (numberOfDays <= 0)
+        {
+            return THPResult.Failed("Số ngày phải lớn hơn 0");
+        }
+
+        if (numberOfDays > 365)
+        {
+            return THPResult.Failed("Số ngày không được vượt quá 365");
         }
 
         return THPResult.Success;

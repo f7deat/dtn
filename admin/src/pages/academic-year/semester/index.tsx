@@ -1,9 +1,9 @@
 import {
-    apiAcademicYearCreate,
-    apiAcademicYearDelete,
-    apiAcademicYearList,
-    apiAcademicYearUpdate,
-} from "@/services/academic-year";
+    apiSemesterCreate,
+    apiSemesterDelete,
+    apiSemesterList,
+    apiSemesterUpdate,
+} from "@/services/semester";
 import { DeleteOutlined, MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import {
     ActionType,
@@ -14,74 +14,90 @@ import {
     ProFormText,
     ProTable,
 } from "@ant-design/pro-components";
+import { useParams } from "@umijs/max";
 import { Button, Dropdown, message, Popconfirm } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { history } from "@umijs/max";
 
 const Index: React.FC = () => {
+    const params = useParams<{ id?: string }>();
+    const academicYearId = Number(params.id);
+    const isValidAcademicYearId = Number.isInteger(academicYearId) && academicYearId > 0;
     const actionRef = useRef<ActionType>(null);
     const formRef = useRef<ProFormInstance>(null);
-    const [academicYear, setAcademicYear] = useState<any>();
+    const [semester, setSemester] = useState<any>();
     const [open, setOpen] = useState<boolean>(false);
 
     useEffect(() => {
-        if (academicYear && formRef.current) {
+        if (semester && formRef.current) {
             formRef.current.setFieldsValue({
-                name: academicYear.name,
-                startDate: dayjs(academicYear.startDate),
-                endDate: dayjs(academicYear.endDate),
+                name: semester.name,
+                startDate: dayjs(semester.startDate),
+                endDate: dayjs(semester.endDate),
             });
         }
-        if (!academicYear) {
+        if (!semester) {
             formRef.current?.resetFields();
         }
-    }, [academicYear, open]);
+    }, [semester, open]);
 
     const onFinish = async (values: any) => {
+        if (!isValidAcademicYearId) {
+            message.error("Không tìm thấy năm học hợp lệ");
+            return false;
+        }
+
         const payload = {
             ...values,
+            academicYearId,
             startDate: dayjs(values.startDate)?.format("YYYY-MM-DD"),
             endDate: dayjs(values.endDate)?.format("YYYY-MM-DD"),
         };
 
-        if (academicYear) {
-            await apiAcademicYearUpdate({ ...payload, id: academicYear.id });
+        if (semester) {
+            await apiSemesterUpdate({ ...payload, id: semester.id });
         } else {
-            await apiAcademicYearCreate(payload);
+            await apiSemesterCreate(payload);
         }
 
-        message.success(academicYear ? "Cập nhật năm học thành công" : "Thêm năm học thành công");
+        message.success(semester ? "Cập nhật kỳ học thành công" : "Thêm kỳ học thành công");
         actionRef.current?.reload();
         formRef.current?.resetFields();
-        setAcademicYear(undefined);
+        setSemester(undefined);
         setOpen(false);
         return true;
     };
 
     const onDelete = async (id: number) => {
-        await apiAcademicYearDelete(id);
+        await apiSemesterDelete(id);
         actionRef.current?.reload();
-        message.success("Xóa năm học thành công");
+        message.success("Xóa kỳ học thành công");
     };
 
     return (
         <PageContainer
+            onBack={() => history.back()}
             extra={
                 <Button
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={() => {
-                        setAcademicYear(undefined);
+                        setSemester(undefined);
                         setOpen(true);
                     }}
                 >
-                    Thêm năm học
+                    Thêm kỳ học
                 </Button>
             }
         >
             <ProTable
-                request={apiAcademicYearList}
+                request={(tableParams: any) => {
+                    if (!isValidAcademicYearId) {
+                        return Promise.resolve({ data: [], success: true, total: 0 });
+                    }
+                    return apiSemesterList({ ...tableParams, academicYearId });
+                }}
                 actionRef={actionRef}
                 rowKey="id"
                 search={{
@@ -94,8 +110,14 @@ const Index: React.FC = () => {
                         width: 48,
                     },
                     {
-                        title: "Tên năm học",
+                        title: "Tên kỳ học",
                         dataIndex: "name",
+                    },
+                    {
+                        title: "Năm học",
+                        dataIndex: "academicYearId",
+                        search: false,
+                        render: (_, record) => record.academicYearName,
                     },
                     {
                         title: "Bắt đầu",
@@ -112,20 +134,6 @@ const Index: React.FC = () => {
                         width: 110,
                     },
                     {
-                        title: "Kỳ học",
-                        dataIndex: "semesterCount",
-                        valueType: "digit",
-                        search: false,
-                        width: 90,
-                    },
-                    {
-                        title: "Sự kiện",
-                        dataIndex: "eventCount",
-                        valueType: "digit",
-                        search: false,
-                        width: 90,
-                    },
-                    {
                         title: "Tác vụ",
                         valueType: "option",
                         width: 90,
@@ -138,17 +146,10 @@ const Index: React.FC = () => {
                                             key: "edit",
                                             label: "Sửa",
                                             onClick: () => {
-                                                setAcademicYear(record);
+                                                setSemester(record);
                                                 setOpen(true);
                                             },
                                         },
-                                        {
-                                            key: "semester",
-                                            label: "Quản lý kỳ học",
-                                            onClick: () => {
-                                                history.push(`/academic-year/semester/${record.id}`);
-                                            },
-                                        }
                                     ],
                                 }}
                             >
@@ -156,7 +157,7 @@ const Index: React.FC = () => {
                             </Dropdown>,
                             <Popconfirm
                                 key="delete"
-                                title="Bạn có chắc chắn muốn xóa năm học này?"
+                                title="Bạn có chắc chắn muốn xóa kỳ học này?"
                                 onConfirm={() => onDelete(record.id)}
                             >
                                 <Button type="primary" danger size="small" icon={<DeleteOutlined />} />
@@ -166,13 +167,13 @@ const Index: React.FC = () => {
                 ]}
             />
             <ModalForm
-                title={academicYear ? "Cập nhật năm học" : "Thêm năm học"}
+                title={semester ? "Cập nhật kỳ học" : "Thêm kỳ học"}
                 formRef={formRef}
                 open={open}
                 onOpenChange={(visible) => {
                     setOpen(visible);
                     if (!visible) {
-                        setAcademicYear(undefined);
+                        setSemester(undefined);
                         formRef.current?.resetFields();
                     }
                 }}
@@ -180,11 +181,11 @@ const Index: React.FC = () => {
             >
                 <ProFormText
                     name="name"
-                    label="Tên năm học"
+                    label="Tên kỳ học"
                     rules={[
                         {
                             required: true,
-                            message: "Vui lòng nhập tên năm học",
+                            message: "Vui lòng nhập tên kỳ học",
                         },
                     ]}
                 />
@@ -219,7 +220,7 @@ const Index: React.FC = () => {
                 />
             </ModalForm>
         </PageContainer>
-    )
-}
+    );
+};
 
 export default Index;

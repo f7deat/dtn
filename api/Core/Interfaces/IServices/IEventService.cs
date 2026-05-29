@@ -15,9 +15,11 @@ public interface IEventService
     Task<THPResult<object>> GenerateQrAsync(EventUserQrArgs args);
     Task<ListResult<object>> GetMyEventsAsync(FilterOptions filterOptions);
     Task<THPResult<object>> GetMyQrAsync(Guid eventId);
+    Task<THPResult<object>> GetMyAttendanceHistoryAsync(Guid eventId);
     Task<ListResult<object>> GetUsersAsync(EUFilterOptions filterOptions);
     Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions);
-    Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId);
+    Task<THPResult<EventCheckInExportData>> GetCheckInExportAsync(Guid eventId, DateOnly? attendanceDate = null);
+    Task<THPResult<object>> ImportCheckInAsync(Guid eventId, IReadOnlyList<EventCheckInImportItem> items);
     Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args);
     Task<THPResult> UpdateAsync(EventUpdateArgs args);
 }

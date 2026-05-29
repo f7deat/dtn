@@ -12,6 +12,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<Event> Events { get; set; }
     public virtual DbSet<EventRegistration> EventRegistrations { get; set; }
     public virtual DbSet<UserEvent> UserEvents { get; set; }
+    public virtual DbSet<UserEventAttendance> UserEventAttendances { get; set; }
     public virtual DbSet<Department> Departments { get; set; }
     public virtual DbSet<AcademicYear> AcademicYears { get; set; }
     public virtual DbSet<Semester> Semesters { get; set; }
@@ -19,6 +20,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserEvent>().HasKey(x => new { x.EventId, x.UserId });
+        modelBuilder.Entity<UserEventAttendance>().HasKey(x => x.Id);
+        modelBuilder.Entity<UserEventAttendance>()
+            .HasIndex(x => new { x.EventId, x.UserId, x.AttendanceDate })
+            .IsUnique();
+        modelBuilder.Entity<UserEventAttendance>()
+            .HasOne(x => x.UserEvent)
+            .WithMany(x => x.Attendances)
+            .HasForeignKey(x => new { x.EventId, x.UserId })
+            .OnDelete(DeleteBehavior.NoAction);
         base.OnModelCreating(modelBuilder);
     }
 }

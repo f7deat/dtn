@@ -8,6 +8,7 @@ public sealed record EventCheckInExportItem(
     string? PhoneNumber,
     DateTime? DateOfBirth,
     string? DepartmentName,
+    DateOnly AttendanceDate,
     DateTime? CheckedInAt,
     string? CheckedInBy,
     DateTime? CheckedOutAt,
