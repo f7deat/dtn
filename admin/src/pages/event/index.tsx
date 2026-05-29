@@ -39,6 +39,7 @@ import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { apiAcademicYearOptions } from "@/services/academic-year";
+import { apiSemesterOptions } from "@/services/semester";
 
 interface EventItem {
     id: string;
@@ -49,6 +50,8 @@ interface EventItem {
     registrationCount: number;
     checkedInCount: number;
     eventType: 0 | 1; // 0 = Limited, 1 = Public
+    academicYearId?: number;
+    semesterId?: number;
 }
 
 interface EventUserItem {
@@ -128,6 +131,8 @@ const Index: React.FC = () => {
                 startDate: dayjs(editingEvent.startDate),
                 endDate: dayjs(editingEvent.endDate),
                 eventType: editingEvent.eventType,
+                academicYearId: editingEvent.academicYearId,
+                semesterId: editingEvent.semesterId,
             });
         }
         if (!editingEvent) {
@@ -372,6 +377,13 @@ const Index: React.FC = () => {
                         dataIndex: 'academicYearId',
                         valueType: 'select',
                         request: apiAcademicYearOptions,
+                        minWidth: 100,
+                    },
+                    {
+                        title: 'Kỳ học',
+                        dataIndex: 'semesterId',
+                        valueType: 'select',
+                        request: async (params) => apiSemesterOptions({ academicYearId: params?.academicYearId }),
                         minWidth: 100,
                     },
                     {
@@ -664,7 +676,31 @@ const Index: React.FC = () => {
                         />
                     </Col>
                     <Col xs={24} md={12}>
-                        <ProFormSelect name="academicYearId" label="Năm học" showSearch request={apiAcademicYearOptions} />
+                        <ProFormSelect
+                            name="academicYearId"
+                            label="Năm học"
+                            showSearch
+                            request={apiAcademicYearOptions}
+                            fieldProps={{
+                                onChange: () => {
+                                    eventFormRef.current?.setFieldValue("semesterId", undefined);
+                                },
+                            }}
+                        />
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <ProFormSelect
+                            name="semesterId"
+                            label="Kỳ học"
+                            showSearch
+                            dependencies={["academicYearId"]}
+                            request={async (params) => {
+                                if (!params.academicYearId) {
+                                    return [];
+                                }
+                                return apiSemesterOptions({ academicYearId: params.academicYearId });
+                            }}
+                        />
                     </Col>
                 </Row>
             </ModalForm>

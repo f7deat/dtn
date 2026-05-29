@@ -50,5 +50,7 @@ export default {
   'menu.article.center': 'Chi tiết bài viết',
   'menu.student': 'Sinh viên',
   'menu.category': 'Danh mục',
+  'menu.academic-year': 'Năm học',
+  'menu.semester': 'Kỳ học',
   'menu.event': 'Sự kiện',
 };

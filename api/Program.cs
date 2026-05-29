@@ -35,6 +35,8 @@ builder.Services.AddIdentity<YouthUnionUser, YouthUnionRole>(options => options.
 builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
+builder.Services.AddScoped<ISemesterService, SemesterService>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IEventService, EventService>();
 

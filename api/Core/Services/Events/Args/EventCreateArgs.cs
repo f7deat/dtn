@@ -12,4 +12,5 @@ public class EventCreateArgs
     public string? Thumbnail { get; set; }
     public EventType EventType { get; set; } = EventType.Limited;
     public int? AcademicYearId { get; set; }
+    public int? SemesterId { get; set; }
 }

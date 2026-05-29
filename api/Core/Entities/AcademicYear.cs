@@ -9,4 +9,6 @@ public class AcademicYear : BaseEntity<int>
     public string Name { get; set; } = default!;
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
+
+    public virtual ICollection<Semester>? Semesters { get; set; }
 }

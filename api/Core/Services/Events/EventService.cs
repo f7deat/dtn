@@ -1,14 +1,16 @@
-﻿using THPCore.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using THPCore.Models;
 using YouthUnion.Core.Entities;
 using YouthUnion.Core.Interfaces.IRepositories;
 using YouthUnion.Core.Interfaces.IServices;
 using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
 using YouthUnion.Core.Services.Events.Models;
+using YouthUnion.Infrastructure.Data;
 
 namespace YouthUnion.Core.Services.Events;
 
-public class EventService(IEventRepository _eventRepository) : IEventService
+public class EventService(IEventRepository _eventRepository, ApplicationDbContext _context) : IEventService
 {
     public Task<THPResult> AddUserAsync(EventUserAddArgs args) => _eventRepository.AddUserAsync(args);
 
@@ -16,6 +18,12 @@ public class EventService(IEventRepository _eventRepository) : IEventService
 
     public async Task<THPResult> CreateAsync(EventCreateArgs args)
     {
+        var validateResult = await ValidateAcademicYearSemesterAsync(args.AcademicYearId, args.SemesterId);
+        if (!validateResult.Succeeded)
+        {
+            return validateResult;
+        }
+
         await _eventRepository.AddAsync(new Event
         {
             Title = args.Title,
@@ -25,7 +33,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             StartDate = args.StartDate,
             Thumbnail = args.Thumbnail,
             EventType = args.EventType,
-            AcademicYearId = args.AcademicYearId
+            AcademicYearId = args.AcademicYearId,
+            SemesterId = args.SemesterId
         });
         return THPResult.Success;
     }
@@ -52,7 +61,8 @@ public class EventService(IEventRepository _eventRepository) : IEventService
             data.EndDate,
             data.Thumbnail,
             data.EventType,
-            data.AcademicYearId
+            data.AcademicYearId,
+            data.SemesterId
         });
     }
 
@@ -74,6 +84,13 @@ public class EventService(IEventRepository _eventRepository) : IEventService
     {
         var data = await _eventRepository.FindAsync(args.Id);
         if (data is null) return THPResult.Failed("Không tìm thấy sự kiện!");
+
+        var validateResult = await ValidateAcademicYearSemesterAsync(args.AcademicYearId, args.SemesterId);
+        if (!validateResult.Succeeded)
+        {
+            return validateResult;
+        }
+
         data.Title = args.Title;
         data.Description = args.Description;
         data.Content = args.Content;
@@ -82,7 +99,41 @@ public class EventService(IEventRepository _eventRepository) : IEventService
         data.Thumbnail = args.Thumbnail;
         data.EventType = args.EventType;
         data.AcademicYearId = args.AcademicYearId;
+        data.SemesterId = args.SemesterId;
         await _eventRepository.UpdateAsync(data);
+        return THPResult.Success;
+    }
+
+    private async Task<THPResult> ValidateAcademicYearSemesterAsync(int? academicYearId, int? semesterId)
+    {
+        if (academicYearId.HasValue)
+        {
+            var ayExists = await _context.AcademicYears.AnyAsync(x => x.Id == academicYearId.Value);
+            if (!ayExists)
+            {
+                return THPResult.Failed("Không tìm thấy năm học");
+            }
+        }
+
+        if (semesterId.HasValue)
+        {
+            var semester = await _context.Semesters.AsNoTracking().FirstOrDefaultAsync(x => x.Id == semesterId.Value);
+            if (semester is null)
+            {
+                return THPResult.Failed("Không tìm thấy kỳ học");
+            }
+
+            if (!academicYearId.HasValue)
+            {
+                return THPResult.Failed("Vui lòng chọn năm học khi chọn kỳ học");
+            }
+
+            if (semester.AcademicYearId != academicYearId.Value)
+            {
+                return THPResult.Failed("Kỳ học không thuộc năm học đã chọn");
+            }
+        }
+
         return THPResult.Success;
     }
 }

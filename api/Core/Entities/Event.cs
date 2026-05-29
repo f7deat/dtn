@@ -19,8 +19,11 @@ public class Event : BaseEntity
     public EventType EventType { get; set; } = EventType.Limited;
     [ForeignKey(nameof(AcademicYear))]
     public int? AcademicYearId { get; set; }
+    [ForeignKey(nameof(Semester))]
+    public int? SemesterId { get; set; }
 
     public virtual AcademicYear? AcademicYear { get; set; }
+    public virtual Semester? Semester { get; set; }
     public virtual ICollection<EventRegistration>? EventRegistrations { get; set; }
     public virtual ICollection<UserEvent>? UserEvents { get; set; }
 }

@@ -430,27 +430,43 @@ public class EventRepository(
     {
         try
         {
-            var query = _dbContext.Events
-            .AsNoTracking()
-            .Select(x => new
-            {
-                x.Id,
-                x.Title,
-                x.Description,
-                x.StartDate,
-                x.EndDate,
-                x.Thumbnail,
-                x.EventType,
-                RegistrationCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id),
-                CheckedInCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id && u.CheckedInAt != null),
-                CheckedOutCount = _dbContext.UserEvents.Count(u => u.EventId == x.Id && u.CheckedOutAt != null),
-                x.AcademicYearId
-            });
+            var query = from e in _dbContext.Events.AsNoTracking()
+                        join ay in _dbContext.AcademicYears on e.AcademicYearId equals ay.Id into ayGroup
+                        from academicYear in ayGroup.DefaultIfEmpty()
+                        join s in _dbContext.Semesters on e.SemesterId equals s.Id into sGroup
+                        from semester in sGroup.DefaultIfEmpty()
+                        select new
+                        {
+                            e.Id,
+                            e.Title,
+                            e.Description,
+                            e.StartDate,
+                            e.EndDate,
+                            e.Thumbnail,
+                            e.EventType,
+                            RegistrationCount = _dbContext.UserEvents.Count(u => u.EventId == e.Id),
+                            CheckedInCount = _dbContext.UserEvents.Count(u => u.EventId == e.Id && u.CheckedInAt != null),
+                            CheckedOutCount = _dbContext.UserEvents.Count(u => u.EventId == e.Id && u.CheckedOutAt != null),
+                            e.AcademicYearId,
+                            AcademicYearName = academicYear != null ? academicYear.Name : null,
+                            e.SemesterId,
+                            SemesterName = semester != null ? semester.Name : null,
+                        };
 
             if (!string.IsNullOrWhiteSpace(filterOptions.Title))
             {
                 var keyword = filterOptions.Title.Trim().ToLower();
                 query = query.Where(x => x.Title.ToLower().Contains(keyword));
+            }
+
+            if (filterOptions.AcademicYearId.HasValue)
+            {
+                query = query.Where(x => x.AcademicYearId == filterOptions.AcademicYearId.Value);
+            }
+
+            if (filterOptions.SemesterId.HasValue)
+            {
+                query = query.Where(x => x.SemesterId == filterOptions.SemesterId.Value);
             }
 
             query = query.OrderByDescending(x => x.StartDate).ThenBy(x => x.Title);

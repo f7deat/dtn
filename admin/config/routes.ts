@@ -52,6 +52,18 @@
     component: './category'
   },
   {
+    path: '/academic-year',
+    name: 'academic-year',
+    icon: 'ScheduleOutlined',
+    component: './academic-year'
+  },
+  {
+    path: '/semester',
+    name: 'semester',
+    icon: 'CalendarOutlined',
+    component: './semester'
+  },
+  {
     path: '/student',
     name: 'student',
     icon: 'UserOutlined',
