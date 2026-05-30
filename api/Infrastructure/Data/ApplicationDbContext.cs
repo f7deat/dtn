@@ -9,6 +9,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public virtual DbSet<Category> Categories { get; set; }
     public virtual DbSet<Article> Articles { get; set; }
+    public virtual DbSet<Contest> Contests { get; set; }
+    public virtual DbSet<ContestSubmission> ContestSubmissions { get; set; }
     public virtual DbSet<Event> Events { get; set; }
     public virtual DbSet<EventRegistration> EventRegistrations { get; set; }
     public virtual DbSet<UserEvent> UserEvents { get; set; }
@@ -19,6 +21,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ContestSubmission>()
+            .HasIndex(x => new { x.ContestId, x.UserId });
+        modelBuilder.Entity<ContestSubmission>()
+            .HasOne(x => x.Contest)
+            .WithMany(x => x.Submissions)
+            .HasForeignKey(x => x.ContestId)
+            .OnDelete(DeleteBehavior.Cascade);
         modelBuilder.Entity<UserEvent>().HasKey(x => new { x.EventId, x.UserId });
         modelBuilder.Entity<UserEventAttendance>().HasKey(x => x.Id);
         modelBuilder.Entity<UserEventAttendance>()

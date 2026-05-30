@@ -47,6 +47,7 @@ const Header: React.FC = () => {
                     <li className="text-lg font-bold hover:text-red-600"><Link href="/">Trang chủ</Link></li>
                     <li className="text-lg font-bold hover:text-red-600"><a href="/about">Giới thiệu</a></li>
                     <li className="text-lg font-bold hover:text-red-600"><Link href="/article">Tin tức</Link></li>
+                    <li className="text-lg font-bold hover:text-red-600"><Link href="/contest">Cuộc thi</Link></li>
                     <li className="text-lg font-bold hover:text-red-600"><a href="/activities">Hoạt động</a></li>
                     <li className="text-lg font-bold hover:text-red-600"><a href="/contact">Liên hệ</a></li>
                     <li className="text-lg font-bold hover:text-red-600"><a href="/search"><FontAwesomeIcon icon={faSearch} className="w-5 h-5 inline" /></a></li>
@@ -142,6 +143,15 @@ const Header: React.FC = () => {
                                             onClick={() => setMobileMenuOpen(false)}
                                         >
                                             Tin tức
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link 
+                                            href="/contest" 
+                                            className="block px-4 py-3 text-gray-900 hover:bg-gray-100 rounded font-semibold"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                        >
+                                            Cuộc thi
                                         </Link>
                                     </li>
                                     <li>

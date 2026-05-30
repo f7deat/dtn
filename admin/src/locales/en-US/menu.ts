@@ -53,4 +53,7 @@ export default {
   'menu.academic-year': 'Năm học',
   'menu.semester': 'Kỳ học',
   'menu.event': 'Sự kiện',
+  'menu.contest': 'Cuộc thi',
+  'menu.contest.overview': 'Tổng quan',
+  'menu.contest.center': 'Chi tiết cuộc thi',
 };

@@ -40,6 +40,29 @@
     ]
   },
   {
+    path: '/contest',
+    name: 'contest',
+    icon: 'TrophyOutlined',
+    routes: [
+      {
+        path: '/contest',
+        redirect: '/contest/overview',
+      },
+      {
+        path: '/contest/overview',
+        name: 'overview',
+        component: './contest',
+        hideInMenu: true,
+      },
+      {
+        path: '/contest/center/:id',
+        name: 'center',
+        component: './contest/center',
+        hideInMenu: true,
+      },
+    ],
+  },
+  {
     path: '/article',
     name: 'article',
     icon: 'FileTextOutlined',

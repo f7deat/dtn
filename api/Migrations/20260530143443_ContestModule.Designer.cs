@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using YouthUnion.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using YouthUnion.Infrastructure.Data;
 namespace YouthUnion.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530143443_ContestModule")]
+    partial class ContestModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -266,10 +269,6 @@ namespace YouthUnion.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AdminNote")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
                     b.Property<Guid>("ContestId")
                         .HasColumnType("uniqueidentifier");
 
@@ -314,9 +313,6 @@ namespace YouthUnion.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
                     b.Property<string>("StoredFilePath")
                         .IsRequired()
                         .HasMaxLength(2048)
@@ -337,7 +333,8 @@ namespace YouthUnion.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ContestId", "UserId");
+                    b.HasIndex("ContestId", "UserId")
+                        .IsUnique();
 
                     b.ToTable("ContestSubmissions");
                 });

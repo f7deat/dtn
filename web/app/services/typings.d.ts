@@ -62,4 +62,34 @@ namespace API {
         checkedOutBy?: string;
         attendanceStatus?: "not-checked-in" | "checked-in" | "checked-out";
     }
+
+    interface ContestListItem {
+        id: string;
+        title: string;
+        description?: string;
+        content?: string;
+        startDate: string;
+        endDate: string;
+        isActive: boolean;
+        isOpened: boolean;
+        hasEnded: boolean;
+        submissionCount: number;
+        createdDate?: string;
+    }
+
+    interface ContestSubmissionItem {
+        id: string;
+        contestId: string;
+        userId: string;
+        userName: string;
+        fullName?: string;
+        email?: string;
+        phoneNumber?: string;
+        originalFileName: string;
+        fileUrl: string;
+        note?: string;
+        status: 0 | 1 | 2;
+        adminNote?: string;
+        submittedAt: string;
+    }
 }

@@ -33,6 +33,7 @@ builder.Services.AddIdentity<YouthUnionUser, YouthUnionRole>(options => options.
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IArticleService, ArticleService>();
+builder.Services.AddScoped<IContestService, ContestService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();

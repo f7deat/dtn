@@ -25,7 +25,7 @@ export async function getInitialState(): Promise<{
   const fetchUserInfo = async () => {
     try {
       const response = await queryCurrentUser();
-      if (response.data.userType === 0) {
+      if (response.data.userType === 0 || response.data.userType === 6) {
         localStorage.removeItem('thp_token');
         return undefined;
       }
