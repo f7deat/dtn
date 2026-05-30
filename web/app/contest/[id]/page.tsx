@@ -12,6 +12,11 @@ import dayjs from "dayjs";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+function isValidPhoneNumber(value: string) {
+    const normalizedValue = value.trim().replace(/[\s().-]/g, "");
+    return /^\+?\d{9,15}$/.test(normalizedValue);
+}
+
 const Page: React.FC = () => {
     const params = useParams<{ id: string }>();
     const [api, contextHolder] = notification.useNotification();
@@ -89,9 +94,17 @@ const Page: React.FC = () => {
             return;
         }
 
+        if (!isValidPhoneNumber(note)) {
+            api.error({
+                message: "Số điện thoại không hợp lệ.",
+                description: "Vui lòng nhập số điện thoại gồm 9 đến 15 chữ số, có thể bắt đầu bằng dấu +.",
+            });
+            return;
+        }
+
         setSubmitting(true);
         try {
-            const response = await apiContestSubmit(contestId, selectedFile, note);
+            const response = await apiContestSubmit(contestId, selectedFile, note.trim());
             if (response?.succeeded === false) {
                 api.error({
                     message: response?.message ?? "Nộp bài thất bại.",
@@ -245,6 +258,10 @@ const Page: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">Số điện thoại</label>
                                 <Input
+                                    type="tel"
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    placeholder="0912345678"
                                     value={note}
                                     onChange={(event) => setNote(event.target.value)}
                                 />
