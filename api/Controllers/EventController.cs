@@ -7,6 +7,7 @@ using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
 using YouthUnion.Core.Services.Events.Models;
 using YouthUnion.ExternalAPI;
+using YouthUnion.ExternalAPI.Models.Response;
 using YouthUnion.Foundation;
 
 namespace YouthUnion.Controllers;
@@ -93,8 +94,19 @@ public class EventController(IEventService _eventService, IHemsService _hemsServ
 
         worksheet.Row(1).Style.Font.Bold = true;
         var userNames = result.Data.Items.Select(i => i.UserName).Distinct().ToList();
-        var response = await _hemsService.ListByUserNamesAsync(userNames);
-        if (response.Data is null) return BadRequest("Failed to get data from HEMS API.");
+        var userInfos = new List<ListByUserNamesResponse>();
+        var batchSize = 1000;
+        var pages = (int)Math.Ceiling(userNames.Count / (double)batchSize);
+
+        for (var page = 1; page <= pages; page++)
+        {
+            var batchUserNames = userNames.Skip((page - 1) * batchSize).Take(batchSize).ToList();
+            var batchResponse = await _hemsService.ListByUserNamesAsync(batchUserNames!);
+            if (batchResponse.Data is not null)
+            {
+                userInfos.AddRange(batchResponse.Data);
+            }
+        }
 
         void PopulateWorksheet(string sheetName, IEnumerable<YouthUnion.Core.Services.Events.Models.EventCheckInExportItem> sourceItems)
         {
@@ -114,7 +126,7 @@ public class EventController(IEventService _eventService, IHemsService _hemsServ
             var row = 2;
             foreach (var item in items)
             {
-                var studentInfo = response.Data.FirstOrDefault(r => r.UserName == item.UserName);
+                var studentInfo = userInfos.FirstOrDefault(r => r.UserName == item.UserName);
 
                 sheet.Cells[row, 1].Value = row - 1;
                 sheet.Cells[row, 2].Value = item.UserName;

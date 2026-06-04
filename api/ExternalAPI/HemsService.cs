@@ -26,7 +26,7 @@ public class HemsService : IHemsService
         {
             userNames,
             current = 1,
-            pageSize = 10000
+            pageSize = 1000
         });
         if (!response.IsSuccessStatusCode)
         {

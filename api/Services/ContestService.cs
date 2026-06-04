@@ -4,6 +4,7 @@ using THPCore.Interfaces;
 using THPCore.Models;
 using YouthUnion.Core.Entities;
 using YouthUnion.ExternalAPI;
+using YouthUnion.ExternalAPI.Models.Response;
 using YouthUnion.Infrastructure.Data;
 using YouthUnion.Interfaces.IServices;
 using YouthUnion.Models.Contests;
@@ -341,7 +342,7 @@ public class ContestService(
             FileUrl = savedFileValue.FileUrl,
             StoredFilePath = savedFileValue.StoredFilePath,
             Note = note?.Trim(),
-            Status = ContestSubmissionStatus.Pending,
+            Status = ContestSubmissionStatus.Approved,
             AdminNote = null,
             SubmittedAt = now,
             CreatedBy = userName,
@@ -398,13 +399,26 @@ public class ContestService(
         var userNames = items.Select(i => i.UserName).Distinct().ToList();
         if (userNames != null && userNames.Count > 0)
         {
-            var userInfos = await _hemsService.ListByUserNamesAsync(userNames!);
-            var userInfoDict = userInfos.Data?.ToDictionary(u => u.UserName, u => u);
-            if (userInfoDict is not null)
+            var userInfos = new List<ListByUserNamesResponse>();
+
+            var pageSize = 1000;
+            var totalPages = (int)Math.Ceiling(userNames.Count / (double)pageSize);
+            foreach (var page in Enumerable.Range(0, totalPages))
+            {
+                var batchUserNames = userNames.Skip(page * pageSize).Take(pageSize).ToList();
+                var batchUserInfos = await _hemsService.ListByUserNamesAsync(batchUserNames!);
+                if (batchUserInfos?.Data != null)
+                {
+                    userInfos.AddRange(batchUserInfos.Data);
+                }
+            }
+
+            if (userInfos is not null)
             {
                 foreach (var item in items)
                 {
-                    if (userInfoDict.TryGetValue(item.UserName, out var userInfo))
+                    var userInfo = userInfos?.FirstOrDefault(x => x.UserName == item.UserName);
+                    if (userInfo is not null)
                     {
                         item.CourseName = userInfo.CourseName;
                         item.ClassName = userInfo.ClassCode;
