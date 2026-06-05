@@ -40,6 +40,7 @@ builder.Services.AddScoped<IAcademicYearService, AcademicYearService>();
 builder.Services.AddScoped<ISemesterService, SemesterService>();
 builder.Services.AddScoped<IEventRepository, EventRepository>();
 builder.Services.AddScoped<IEventService, EventService>();
+builder.Services.AddScoped<ILogService, LogService>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<IHCAService, HCAService>();

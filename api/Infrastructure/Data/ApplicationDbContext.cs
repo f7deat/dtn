@@ -18,6 +18,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public virtual DbSet<Department> Departments { get; set; }
     public virtual DbSet<AcademicYear> AcademicYears { get; set; }
     public virtual DbSet<Semester> Semesters { get; set; }
+    public virtual DbSet<ApplicationLog> ApplicationLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
