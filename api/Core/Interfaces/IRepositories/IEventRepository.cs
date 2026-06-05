@@ -20,4 +20,5 @@ public interface IEventRepository : IAsyncRepository<Event>
     Task<THPResult<object>> ImportCheckInAsync(Guid eventId, IReadOnlyList<EventCheckInImportItem> items);
     Task<ListResult<object>> ListAsync(EventFilterOptions filterOptions);
     Task<THPResult> RemoveUserAsync(EventUserRemoveArgs args);
+    Task<bool> HasAnyRegistrationAsync(Guid id);
 }

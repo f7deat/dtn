@@ -7,10 +7,11 @@ using YouthUnion.Core.Services.Events.Args;
 using YouthUnion.Core.Services.Events.Filters;
 using YouthUnion.Core.Services.Events.Models;
 using YouthUnion.Infrastructure.Data;
+using YouthUnion.Interfaces.IServices;
 
 namespace YouthUnion.Core.Services.Events;
 
-public class EventService(IEventRepository _eventRepository, ApplicationDbContext _context) : IEventService
+public class EventService(IEventRepository _eventRepository, ApplicationDbContext _context, ILogService _logService) : IEventService
 {
     public Task<THPResult> AddUserAsync(EventUserAddArgs args) => _eventRepository.AddUserAsync(args);
 
@@ -29,7 +30,7 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
         {
             return validateResult;
         }
-
+        await _logService.AddAsync($"Tạo sự kiện: {args.Title}");
         await _eventRepository.AddAsync(new Event
         {
             Title = args.Title,
@@ -49,6 +50,11 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
     {
         var data = await _eventRepository.FindAsync(id);
         if (data is null) return THPResult.Failed("Không tìm thấy sự kiện!");
+        if (await _eventRepository.HasAnyRegistrationAsync(id))
+        {
+            return THPResult.Failed("Không thể xóa sự kiện vì đã có người đăng ký tham gia");
+        }
+        await _logService.AddAsync($"Xóa sự kiện: {data.Title}");
         await _eventRepository.DeleteAsync(data);
         return THPResult.Success;
     }
@@ -118,6 +124,7 @@ public class EventService(IEventRepository _eventRepository, ApplicationDbContex
         data.Thumbnail = args.Thumbnail;
         data.EventType = args.EventType;
         data.SemesterId = args.SemesterId;
+        await _logService.AddAsync($"Cập nhật sự kiện: {data.Title}");
         await _eventRepository.UpdateAsync(data);
         return THPResult.Success;
     }

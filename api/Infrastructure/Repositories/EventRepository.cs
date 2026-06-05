@@ -863,6 +863,11 @@ public class EventRepository(
         return null;
     }
 
+    public async Task<bool> HasAnyRegistrationAsync(Guid id)
+    {
+        return await _dbContext.UserEvents.AnyAsync(x => x.EventId == id);
+    }
+
     private sealed record EventQrPayload(Guid EventId, string UserId);
 
     private enum ScanAction

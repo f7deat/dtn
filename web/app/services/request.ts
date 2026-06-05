@@ -18,6 +18,12 @@ export function createRequest(baseURL: string = API_BASE_URL) {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      if (config.method?.toLowerCase() === 'get') {
+        config.params = {
+          ...config.params,
+          _t: Date.now(),
+        };
+      }
       return config;
     },
     (error: unknown) => Promise.reject(error)

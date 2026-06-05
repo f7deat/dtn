@@ -126,6 +126,12 @@
     component: './student'
   },
   {
+    path: '/history',
+    name: 'history',
+    icon: 'HistoryOutlined',
+    component: './history'
+  },
+  {
     path: '/',
     redirect: '/dashboard',
   },

@@ -56,4 +56,5 @@ export default {
   'menu.contest': 'Cuộc thi',
   'menu.contest.overview': 'Tổng quan',
   'menu.contest.center': 'Chi tiết cuộc thi',
+  'menu.history': 'Lịch sử',
 };

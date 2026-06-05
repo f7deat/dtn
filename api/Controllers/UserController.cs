@@ -14,7 +14,7 @@ using YouthUnion.Core.Entities;
 using YouthUnion.Core.ExternalAPI.Interfaces;
 using YouthUnion.Foundation;
 
-namespace YouthUnion.API.Controllers;
+namespace YouthUnion.Controllers;
 
 public class UserController(IIdentityAPI _identityAPI, UserManager<YouthUnionUser> _userManager, IConfiguration _configuration, IHCAService _hcaService) : BaseController
 {

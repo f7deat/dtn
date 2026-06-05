@@ -15,7 +15,7 @@ public class ContestService(
     ApplicationDbContext _context,
     IHCAService _hcaService,
     IWebHostEnvironment _webHostEnvironment,
-    IHttpContextAccessor _httpContextAccessor,
+    IHttpContextAccessor _httpContextAccessor, ILogService _logService,
     IHemsService _hemsService) : IContestService
 {
     public async Task<THPResult> CreateAsync(ContestCreateArgs args)
@@ -37,8 +37,9 @@ public class ContestService(
             CreatedBy = _hcaService.GetUserName(),
             CreatedDate = DateTime.Now,
         };
-
+        await _logService.AddAsync($"Tạo mới cuộc thi: {contest.Title}");
         await _context.Contests.AddAsync(contest);
+
         await _context.SaveChangesAsync();
         return THPResult.Ok(contest.Id);
     }
@@ -67,6 +68,7 @@ public class ContestService(
         contest.ModifiedDate = DateTime.Now;
 
         _context.Contests.Update(contest);
+        await _logService.AddAsync($"Cập nhật cuộc thi: {contest.Title}");
         await _context.SaveChangesAsync();
         return THPResult.Success;
     }
@@ -80,6 +82,10 @@ public class ContestService(
         {
             return THPResult.Failed("Không tìm thấy cuộc thi.");
         }
+        if (await _context.ContestSubmissions.AnyAsync(x => x.ContestId == id))
+        {
+            return THPResult.Failed("Không thể xóa cuộc thi vì đã có bài dự thi.");
+        }
 
         if (contest.Submissions is not null)
         {
@@ -91,6 +97,7 @@ public class ContestService(
         }
 
         _context.Contests.Remove(contest);
+        await _logService.AddAsync($"Xóa cuộc thi: {contest.Title}");
         await _context.SaveChangesAsync();
         return THPResult.Success;
     }
@@ -266,6 +273,7 @@ public class ContestService(
         submission.ModifiedBy = _hcaService.GetUserName();
         submission.ModifiedDate = DateTime.Now;
         _context.ContestSubmissions.Update(submission);
+        await _logService.AddAsync($"Cập nhật trạng thái bài dự thi (ID: {submission.Id}) thành {submission.Status}");
         await _context.SaveChangesAsync();
         return THPResult.Success;
     }
@@ -280,6 +288,7 @@ public class ContestService(
 
         DeletePhysicalFile(submission.StoredFilePath);
         _context.ContestSubmissions.Remove(submission);
+        await _logService.AddAsync($"Xóa bài dự thi (ID: {submission.Id})");
         await _context.SaveChangesAsync();
         return THPResult.Success;
     }
@@ -350,7 +359,7 @@ public class ContestService(
         };
 
         await _context.ContestSubmissions.AddAsync(submission);
-
+        await _logService.AddAsync($"Sinh viên {userName} nộp bài dự thi cho cuộc thi {contest.Title} (ID: {submission.Id})");
         await _context.SaveChangesAsync();
         return THPResult.Ok(new
         {
