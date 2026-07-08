@@ -2,9 +2,10 @@ import MyCkEditor from "@/components/ckeditor/MyCkEditor";
 import { apiArticleGet, apiArticleUpdate } from "@/services/article";
 import { apiUploadFile } from "@/services/file";
 import { LeftOutlined, UploadOutlined } from "@ant-design/icons";
-import { PageContainer, ProCard, ProForm, ProFormInstance, ProFormSelect, ProFormText, ProFormTextArea } from "@ant-design/pro-components"
+import { PageContainer, ProCard, ProForm, ProFormDateTimePicker, ProFormInstance, ProFormSelect, ProFormText, ProFormTextArea } from "@ant-design/pro-components"
 import { history, useParams, useRequest } from "@umijs/max";
 import { Button, Col, message, Row } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 
 const Index: React.FC = () => {
@@ -21,7 +22,8 @@ const Index: React.FC = () => {
                 description: data.description,
                 thumbnail: data.thumbnail,
                 isActive: data.isActive,
-                content: data.content
+                content: data.content,
+                createdDate: dayjs(data.createdDate)
             });
             setThumbnail(data.thumbnail);
         }
@@ -29,6 +31,7 @@ const Index: React.FC = () => {
 
     const onFinish = async (values: any) => {
         values.id = id;
+        values.createdDate = dayjs(values.createdDate).toISOString();
         await apiArticleUpdate(values);
         message.success('Cập nhật thành công');
     }
@@ -85,6 +88,12 @@ const Index: React.FC = () => {
                                     message: 'Vui lòng nhập ảnh đại diện'
                                 }
                             ]} />
+                            <ProFormDateTimePicker name="createdDate" label="Ngày tạo" rules={[
+                                {
+                                    required: true,
+                                    message: 'Vui lòng chọn ngày tạo'
+                                }
+                            ]} initialValue={dayjs()} width={"lg"} />
                             <ProFormSelect name="isActive" label="Trạng thái" options={[
                                 { label: 'Xuất bản', value: true },
                                 { label: 'Bản nháp', value: false }

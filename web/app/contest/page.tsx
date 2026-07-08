@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { apiContestList } from "../services/contest";
 import Breadcrumb from "../components/breadcrumb";
 import dayjs from "dayjs";
