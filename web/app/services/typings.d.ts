@@ -7,6 +7,21 @@ namespace API {
         normalizedName: string;
     }
 
+    interface ArticleDetail {
+        id: string;
+        title: string;
+        thumbnail?: string;
+        description?: string;
+        createdDate?: string;
+        createdBy?: string;
+        isActive: boolean;
+        modifiedBy?: string;
+        viewCount: number;
+        modifiedDate?: string;
+        categoryId?: number;
+        content?: string;
+    }
+
     interface CurrentUser {
         id?: string | number;
         userName?: string;

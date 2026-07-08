@@ -52,6 +52,9 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
     {
         var article = await _context.Articles.FirstOrDefaultAsync(x => x.NormalizedName == normalizedName && x.IsActive);
         if (article is null) return default;
+        article.ViewCount++;
+        _context.Articles.Update(article);
+        await _context.SaveChangesAsync();
         return new
         {
             article.Id,

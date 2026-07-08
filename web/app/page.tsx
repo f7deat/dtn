@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 /* eslint-disable @next/next/no-img-element */
 import { faFlag } from "@fortawesome/free-regular-svg-icons";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";

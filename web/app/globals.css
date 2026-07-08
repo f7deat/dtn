@@ -18,6 +18,21 @@
     box-shadow: 0 2px 20px 0 rgba(62, 65, 159, .09);
 }
 
+.prose p {
+  margin-bottom: 0.5rem;
+}
+
+.prose figure {
+  margin-bottom: 0.5rem;
+}
+
+.prose img {
+  border-radius: 0.5rem;
+  max-width: 90%;
+  display: block;
+  margin: 0 auto;
+}
+
 /* Mobile Menu Animations */
 @keyframes fadeIn {
   from {
