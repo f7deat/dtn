@@ -136,6 +136,7 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
         var article = await _context.Articles.FindAsync(args.Id);
         if (article is null) return THPResult.Failed("Không tìm thấy bài viết!");
         article.Title = args.Title;
+        args.NormalizedName = SeoHelper.ToSeoFriendly(args.Title);
         article.Content = args.Content;
         article.ModifiedBy = _hcaService.GetUserName();
         article.ModifiedDate = DateTime.Now;
@@ -143,6 +144,7 @@ public class ArticleService(ApplicationDbContext _context, IHCAService _hcaServi
         article.Thumbnail = args.Thumbnail;
         article.IsActive = args.IsActive;
         article.Description = args.Description;
+        article.CreatedDate = args.CreatedDate;
         _context.Articles.Update(article);
         await _context.SaveChangesAsync();
         return THPResult.Success;
