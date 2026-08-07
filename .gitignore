@@ -417,3 +417,4 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /api/appsettings.Development.json
+web/package-lock.json
