@@ -15,10 +15,8 @@ import {
     CheckCircleOutlined,
     DownloadOutlined,
     FileExcelOutlined,
-    LeftOutlined,
     PlusOutlined,
     QrcodeOutlined,
-    TeamOutlined,
     UploadOutlined,
     UserDeleteOutlined,
 } from "@ant-design/icons";
@@ -377,11 +375,7 @@ const Index: React.FC = () => {
         <PageContainer
             title={event?.title ?? "Chi tiết sự kiện"}
             loading={eventLoading}
-            extra={
-                <Button icon={<LeftOutlined />} onClick={() => history.push("/event/overview")}>
-                    Quay lại
-                </Button>
-            }
+            onBack={() => history.back()}
         >
             <div className="md:flex gap-4">
                 <div className="md:w-2/5 mb-4">
@@ -394,7 +388,7 @@ const Index: React.FC = () => {
                                     <Descriptions.Item label="Thời gian">
                                         {dayjs(event.startDate).format("DD/MM/YYYY")} - {dayjs(event.endDate).format("DD/MM/YYYY")}
                                     </Descriptions.Item>
-                                    <Descriptions.Item label="Số ngày">{event.numberOfDays}</Descriptions.Item>
+                                    <Descriptions.Item label="Số buổi">{event.numberOfDays}</Descriptions.Item>
                                     <Descriptions.Item label="Tiến độ">
                                         <Space wrap>
                                             <Tag color="blue">{event.checkedInCount}/{event.registrationCount} đã check-in</Tag>
@@ -446,7 +440,7 @@ const Index: React.FC = () => {
                                     />
                                 ) : null}
 
-                                <Button type="primary" icon={<CameraOutlined />} onClick={() => setScannerOpen(true)}>
+                                <Button type="primary" block icon={<CameraOutlined />} onClick={() => setScannerOpen(true)}>
                                     Mở camera quét QR
                                 </Button>
                             </Space>

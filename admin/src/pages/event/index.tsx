@@ -8,6 +8,8 @@ import {
 import {
     DeleteOutlined,
     EditOutlined,
+    GlobalOutlined,
+    LockOutlined,
     PlusOutlined,
 } from "@ant-design/icons";
 import {
@@ -23,7 +25,7 @@ import {
     ProFormTextArea,
     ProTable,
 } from "@ant-design/pro-components";
-import { history } from "@umijs/max";
+import { history, Link } from "@umijs/max";
 import { Button, message, Popconfirm, Tag, Row, Col } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
@@ -127,52 +129,58 @@ const Index: React.FC = () => {
                         dataIndex: "title",
                         render: (text, record) => (
                             <div>
-                                <div className="font-medium mb-1">{text}</div>
+                                <div className="font-medium mb-1">
+                                    {record.eventType === 0 ? (
+                                        <LockOutlined className="mr-1 text-gray-400" />
+                                    ) : (
+                                        <GlobalOutlined className="mr-1 text-gray-400" />
+                                    )}
+                                    <Link to={`/event/center/${record.id}`} className="text-red-600 hover:underline font-semibold">
+                                        {text}
+                                    </Link>
+                                </div>
                                 <div className="text-gray-500 text-sm line-clamp-2">{record.description}</div>
                             </div>
                         )
+                    },
+                    {
+                        title: 'Năm học',
+                        dataIndex: 'academicYearId',
+                        valueType: 'select',
+                        request: apiAcademicYearOptions,
+                        minWidth: 150
                     },
                     {
                         title: 'Kỳ học',
                         dataIndex: 'semesterId',
                         valueType: 'select',
                         request: async () => apiSemesterOptions({}),
-                        minWidth: 120,
+                        minWidth: 100,
                         render: (_, record) => record.semesterName ?? "-",
                     },
                     {
-                        title: "Số ngày",
+                        title: "Số buổi",
                         dataIndex: "numberOfDays",
                         valueType: "digit",
                         search: false,
-                        width: 90,
+                        width: 80,
                         render: (text) => (
                             <Tag color="cyan" className="w-full text-center">{text}</Tag>
                         )
-                    },
-                    {
-                        title: "Loại",
-                        dataIndex: "eventType",
-                        valueEnum: {
-                            0: { text: "Giới hạn", status: "Default" },
-                            1: { text: "Công khai", status: "Processing" },
-                        },
-                        search: false,
-                        width: 110,
                     },
                     {
                         title: "Bắt đầu",
                         dataIndex: "startDate",
                         valueType: "date",
                         search: false,
-                        width: 100,
+                        width: 95,
                     },
                     {
                         title: "Kết thúc",
                         dataIndex: "endDate",
                         valueType: "date",
                         search: false,
-                        width: 100,
+                        width: 95,
                     },
                     {
                         title: "Tham gia",
@@ -207,11 +215,8 @@ const Index: React.FC = () => {
                     {
                         title: "Tác vụ",
                         valueType: "option",
-                        width: 180,
+                        width: 160,
                         render: (_, record) => [
-                            <Button key="manage" size="small" type="primary" onClick={() => history.push(`/event/center/${record.id}`)}>
-                                Quản lý
-                            </Button>,
                             <Button key="edit" size="small" type="primary" onClick={() => openEditEventModal(record)} icon={<EditOutlined />} />,
                             <Button key={"export"} size="small" onClick={async () => {
                                 if (!record.id) return;
@@ -289,11 +294,11 @@ const Index: React.FC = () => {
                     <Col xs={24} md={6}>
                         <ProFormDigit
                             name="numberOfDays"
-                            label="Số ngày"
+                            label="Số buổi"
                             initialValue={1}
                             min={1}
                             max={365}
-                            rules={[{ required: true, message: "Vui lòng nhập số ngày" }]}
+                            rules={[{ required: true, message: "Vui lòng nhập số buổi" }]}
                         />
                     </Col>
                     <Col xs={24} md={6}>

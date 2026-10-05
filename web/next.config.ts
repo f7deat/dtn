@@ -53,6 +53,7 @@ if (typeof window === "undefined") {
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone",
 };
 
 export default nextConfig;
